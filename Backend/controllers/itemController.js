@@ -5,13 +5,19 @@ const {
   Op
 } = Sequelize;
 const {
-  items, users
+  items, users, categories
 } = models;
 
 class itemController {
   static async createItem(req, res) {
     const {
-      itemName, itemType, itemImage, itemImage2, itemDescription, itemPrice, status
+      itemName,
+      category,
+      itemImage,
+      itemImage2,
+      itemDescription,
+      itemPrice,
+      status,
     } = req.body;
 
     try {
@@ -44,7 +50,7 @@ class itemController {
         itemName,
         itemImage,
         itemImage2,
-        itemType,
+        category,
         itemOwnerId: findUser.id,
         itemDescription,
         itemPrice,
@@ -66,7 +72,13 @@ class itemController {
 
   static async updateItem(req, res) {
     const {
-      itemName, itemImage, itemImage2, itemType, itemDescription, itemPrice, status
+      itemName,
+      itemImage,
+      itemImage2,
+      category,
+      itemDescription,
+      itemPrice,
+      status,
     } = req.body;
     const {
       id
@@ -78,7 +90,7 @@ class itemController {
           itemName,
           itemImage,
           itemImage2,
-          itemType,
+          category,
           itemDescription,
           itemPrice,
           status,
@@ -141,14 +153,12 @@ class itemController {
       id
     } = req.params;
     try {
-      const deletingItem = await items.destroy(
-        {
-          where: {
-            id,
-            itemOwnerId: req.decoded.id,
-          },
-        }
-      );
+      const deletingItem = await items.destroy({
+        where: {
+          id,
+          itemOwnerId: req.decoded.id,
+        },
+      });
       if (!deletingItem) {
         return res.status(404).json({
           error: 'Failed to delete an item',
@@ -215,11 +225,13 @@ class itemController {
             },
           ],
         },
-        include: [{
-          model: users,
-          as: 'owner',
-          attributes: ['organization', 'description', 'profile']
-        }]
+        include: [
+          {
+            model: users,
+            as: 'owner',
+            attributes: ['organization', 'description', 'profile'],
+          },
+        ],
       });
       if (!searchResult) {
         return res.status(404).json({
@@ -242,20 +254,35 @@ class itemController {
     }
   }
 
-  static async allByOrganization(req, res) {
-    const {
-      itemOwnerId
-    } = req.params;
+  static async allAvailbleItems(req, res) {
     try {
+      // @pagination
+      let page, limit;
+      if (Object.keys(req.query).length === 0) {
+        page = 1;
+        limit = 20;
+      } else if (req.query.limit === undefined) {
+        ({
+          page
+        } = req.query);
+        limit = 10;
+      } else {
+        ({
+          page, limit
+        } = req.query);
+      }
+      // @retrieve items
       const allitems = await items.findAll({
-        where: {
-          itemOwnerId,
-        },
-        include: [{
-          model: users,
-          as: 'owner',
-          attributes: ['organization', 'description', 'profile']
-        }]
+        include: [
+          {
+            model: users,
+            as: 'owner',
+            attributes: ['organization', 'description', 'profile'],
+          },
+        ],
+        order: [['createdAt', 'DESC']],
+        offset: (parseInt(page, 20) - 1) * limit,
+        limit,
       });
       if (allitems.length < 1) {
         return res.status(404).json({
@@ -264,6 +291,215 @@ class itemController {
       }
       return res.status(200).json({
         allitems,
+        metadata: {
+          currentPage: parseInt(page, 10),
+          previousPage: parseInt(page, 10) > 1 ? parseInt(page, 10) - 1 : null,
+          nextPage:
+						Math.ceil(allitems.length / limit) > page
+						  ? parseInt(page, 10) + 1
+						  : null,
+          totalPages: Math.ceil(allitems.length / limit),
+          limit: parseInt(limit, 10),
+        },
+        message: 'Get items successful',
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: 'Failed to get items',
+      });
+    }
+  }
+
+  static async getHomeItems(req, res) {
+    try {
+      const construction = await items.findAll({
+        where: {
+          category: 'construction',
+        },
+        order: [['createdAt', 'DESC']],
+        offset: (parseInt(1, 5) - 1) * 5,
+        limit: 3,
+      });
+      const plombing = await items.findAll({
+        where: {
+          category: 'plombing',
+        },
+        order: [['createdAt', 'DESC']],
+        offset: (parseInt(1, 5) - 1) * 5,
+        limit: 4,
+      });
+      const electricity = await items.findAll({
+        where: {
+          category: 'electricity',
+        },
+        order: [['createdAt', 'DESC']],
+        offset: (parseInt(1, 5) - 1) * 5,
+        limit: 8,
+      });
+      // if (!most) {
+      //   return res.status(404).json({
+      //     error: 'No Item most found',
+      //   });
+      // }
+      return res.status(200).json({
+        construction,
+        plombing,
+        electricity,
+        message: 'Get Home items successful',
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: 'Failed to get items',
+      });
+    }
+  }
+
+
+  // static async usedLater(req, res) {
+  //   try {
+  //     const thecategory = await categories.findAll();
+  //     // console.log(thecategory.map(i=>i.name));
+  //     // const category = thecategory.map((i) => i.name);
+
+  //     const itemsByCategory = thecategory.map(async (id) => {
+  //       const category = await items.findAll({
+  //         where: {
+  //           category: id.name
+  //         }
+  //       });
+  //       return {
+  //         category,
+  //       };
+  //     });
+
+  //     // const most = await items.findAll({
+  //     //   where: {
+  //     //     category: 'most',
+  //     //   },
+  //     //   order: [['createdAt', 'DESC']],
+  //     //   offset: (parseInt(1, 5) - 1) * 5,
+  //     //   limit: 3,
+  //     // });
+  //     // const moderate = await items.findAll({
+  //     //   where: {
+  //     //     category: 'moderate',
+  //     //   },
+  //     //   order: [['createdAt', 'DESC']],
+  //     //   offset: (parseInt(1, 5) - 1) * 5,
+  //     //   limit: 4,
+  //     // });
+  //     // const low = await items.findAll({
+  //     //   where: {
+  //     //     category: 'low',
+  //     //   },
+  //     //   order: [['createdAt', 'DESC']],
+  //     //   offset: (parseInt(1, 5) - 1) * 5,
+  //     //   limit: 8,
+  //     // });
+  //     // if (!most) {
+  //     //   return res.status(404).json({
+  //     //     error: 'No Item most found',
+  //     //   });
+  //     // }
+  //     const allitems = await Promise.all(itemsByCategory);
+  //     return res.status(200).json({
+  //       category: allitems.map((i) => i.category),
+  //       message: 'Get Home items successful',
+  //     });
+  //   } catch (error) {
+  //     return res.status(500).json({
+  //       error: 'Failed to get items',
+  //     });
+  //   }
+  // }
+
+  // to get single item
+  static async getItem(req, res) {
+    const {
+      id
+    } = req.params;
+    try {
+      const item = await items.findOne({
+        where: {
+          id,
+        },
+        include: [
+          {
+            model: users,
+            as: 'owner',
+            attributes: ['organization', 'description', 'profile'],
+          },
+        ],
+      });
+      if (!item) {
+        return res.status(404).json({
+          error: 'item not found',
+        });
+      }
+      return res.status(200).json({
+        item,
+        message: 'get item successful',
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: 'Failed to get an item',
+      });
+    }
+  }
+
+  static async relatedItems(req, res) {
+    const {
+      category
+    } = req.params;
+    try {
+      // @pagination
+      let page, limit;
+      if (Object.keys(req.query).length === 0) {
+        page = 1;
+        limit = 20;
+      } else if (req.query.limit === undefined) {
+        ({
+          page
+        } = req.query);
+        limit = 10;
+      } else {
+        ({
+          page, limit
+        } = req.query);
+      }
+      // @retrieve items
+      const relatedItems = await items.findAll({
+        where: {
+          category,
+        },
+        include: [
+          {
+            model: users,
+            as: 'owner',
+            attributes: ['organization', 'description', 'profile'],
+          },
+        ],
+        order: [['createdAt', 'DESC']],
+        offset: (parseInt(page, 20) - 1) * limit,
+        limit,
+      });
+      if (relatedItems.length < 1) {
+        return res.status(404).json({
+          error: 'No Item found',
+        });
+      }
+      return res.status(200).json({
+        relatedItems,
+        metadata: {
+          currentPage: parseInt(page, 10),
+          previousPage: parseInt(page, 10) > 1 ? parseInt(page, 10) - 1 : null,
+          nextPage:
+						Math.ceil(relatedItems.length / limit) > page
+						  ? parseInt(page, 10) + 1
+						  : null,
+          totalPages: Math.ceil(relatedItems.length / limit),
+          limit: parseInt(limit, 10),
+        },
         message: 'Get items successful',
       });
     } catch (error) {

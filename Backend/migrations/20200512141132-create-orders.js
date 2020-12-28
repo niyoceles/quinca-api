@@ -21,7 +21,7 @@ module.exports = {
 				type: Sequelize.UUID,
 				allowNull: true,
 			},
-			itemType: {
+			category: {
 				type: Sequelize.STRING,
 				allowNull: false,
 			},

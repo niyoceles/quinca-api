@@ -4,23 +4,23 @@ module.exports = {
       allowNull: false,
       primaryKey: true,
       type: Sequelize.UUID,
-      defaultValue: Sequelize.UUIDV4
+      defaultValue: Sequelize.UUIDV4,
     },
     itemName: {
       type: Sequelize.STRING,
       allowNull: false,
-      required: true
+      required: true,
     },
     itemImage: {
       type: Sequelize.STRING,
       allowNull: false,
-      required: true
+      required: true,
     },
     itemImage2: {
       type: Sequelize.STRING,
       allowNull: true,
     },
-    itemType: {
+    category: {
       type: Sequelize.STRING,
       allowNull: false,
       required: true,
@@ -31,31 +31,31 @@ module.exports = {
       onDelete: 'CASCADE',
       references: {
         model: 'users',
-        key: 'id'
-      }
+        key: 'id',
+      },
     },
     itemDescription: {
       type: Sequelize.STRING,
-      allowNull: false
+      allowNull: false,
     },
     itemPrice: {
       type: Sequelize.STRING,
       allowNull: true,
-      required: true
+      required: true,
     },
     status: {
       allowNull: false,
       type: Sequelize.BOOLEAN,
-      defaultValue: true
+      defaultValue: true,
     },
     createdAt: {
       allowNull: false,
-      type: Sequelize.DATE
+      type: Sequelize.DATE,
     },
     updatedAt: {
       allowNull: false,
-      type: Sequelize.DATE
-    }
+      type: Sequelize.DATE,
+    },
   }),
-  down: (queryInterface, Sequelize) => queryInterface.dropTable('items')
+  down: (queryInterface, Sequelize) => queryInterface.dropTable('items'),
 };

@@ -1,7 +1,9 @@
 import express from 'express';
 import itemController from '../controllers/itemController';
 import itemValidation from '../validations/itemValidation';
-import { checkToken } from '../helpers';
+import {
+  checkToken
+} from '../helpers';
 
 const router = express.Router();
 
@@ -33,7 +35,10 @@ router.patch(
   itemController.activateItem
 );
 
-router.get('/:itemOwnerId', itemController.allByOrganization);
+router.get('/all', itemController.allAvailbleItems);
+router.get('/home', itemController.getHomeItems);
+router.get('/related/:category', itemController.relatedItems);
+router.get('/:id', itemController.getItem);
 
 router.post('/search', itemController.searchItem);
 router.get('/', checkToken, itemController.GetMyItems);
