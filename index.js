@@ -11,9 +11,9 @@ app.use(cors());
 
 // body parse configuration
 app.use(
-  bodyParser.urlencoded({
-    extended: false
-  })
+	bodyParser.urlencoded({
+		extended: false,
+	})
 );
 
 app.use(bodyParser.json());
@@ -23,14 +23,14 @@ app.use('/api', router);
 
 // Error handling to catch 404
 app.all('*', (_req, res) => {
-  res.status(404).json({
-    error: 'address Not found'
-  });
+	res.status(404).json({
+		error: 'address Not found',
+	});
 });
 
 // Starting server
-const server = app.listen(process.env.PORT || 3000, () => {
-  console.log(`Server running on ${server.address().port}`);
+const server = app.listen(process.env.PORT || 4000, () => {
+	console.log(`Server running on ${server.address().port}`);
 });
 
 export default app;
