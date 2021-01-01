@@ -11,18 +11,10 @@ module.exports = {
       allowNull: false,
       required: true,
     },
-    itemOwnerId: {
-      type: Sequelize.UUID,
-      allowNull: false,
-      required: true,
-    },
-    itemId: {
-      type: Sequelize.UUID,
+    itemsArray: {
+      type: Sequelize.ARRAY(Sequelize.JSON),
       allowNull: true,
-    },
-    category: {
-      type: Sequelize.STRING,
-      allowNull: false,
+      defaultValue: [],
     },
     pickupDate: {
       type: Sequelize.STRING,
@@ -34,14 +26,6 @@ module.exports = {
       allowNull: false,
       required: true,
     },
-    pickup: {
-      type: Sequelize.STRING,
-      allowNull: true,
-    },
-    dropoff: {
-      type: Sequelize.STRING,
-      allowNull: true,
-    },
     status: {
       type: Sequelize.ENUM,
       allowNull: false,
@@ -52,11 +36,6 @@ module.exports = {
       allowNull: false,
       type: Sequelize.BOOLEAN,
       defaultValue: false,
-    },
-    amount: {
-      type: Sequelize.DECIMAL(10, 2),
-      defaultValue: 0.0,
-      allowNull: false,
     },
     paymentType: {
       type: Sequelize.ENUM,

@@ -27,42 +27,40 @@ class orderController {
         });
       }
 
-      const proformaItem = itemsArray.map(async itemId => {
-        const itemDetails = await items.findByPk(itemId);
-        const arrivalDateObj = new Date(pickupDate);
-        const leavingDateObj = new Date(deadline);
-        const duration = Math.round(
-          (leavingDateObj - arrivalDateObj) / (24 * 3600 * 1000)
-        );
-        const amount = duration * itemDetails.itemPrice;
+      // const proformaItem = itemsArray.map(async itemId => {
+      // const itemDetails = await items.findByPk(itemId);
+      // const arrivalDateObj = new Date(pickupDate);
+      // const leavingDateObj = new Date(deadline);
+      // const duration = Math.round(
+      //   (leavingDateObj - arrivalDateObj) / (24 * 3600 * 1000)
+      // );
+      // const amount = duration * itemDetails.itemPrice;
 
-        const newProforma = await proforma.create({
-          clientId: userClient.id,
-          itemOwnerId: itemDetails.itemOwnerId,
-          itemId,
-          category: itemDetails.category,
-          pickupDate,
-          deadline,
-          amount,
-        });
+      const newProforma = await proforma.create({
+        clientId: userClient.id,
+        itemsArray,
+        pickupDate,
+        deadline,
+      });
         // const item = await itemService.changeStatus(itemId, false);
 
-        return {
-          proformaId: newProforma.id,
-          item: await items.findOne({
-            where: {
-              id: itemId,
-            },
-          }),
-        };
-      });
+      //   return {
+      //     proformaId: newProforma.id,
+      //     item: await items.findOne({
+      //       where: {
+      //         id: itemId,
+      //       },
+      //     }),
+      //   };
+      // });
 
-      const proformaItems = await Promise.all(proformaItem);
+      // const proformaItems = await Promise.all(proformaItem);
       return res.status(201).json({
-        proformaItems,
+        newProforma,
         message: 'proforma successful created',
       });
     } catch (error) {
+      console.log(error);
       return res.status(500).json({
         error: 'Failed to request proforma',
       });
@@ -75,35 +73,6 @@ class orderController {
         where: {
           clientId: req.decoded.id,
         },
-        include: [
-          {
-            model: items,
-            as: 'items',
-            attributes: [
-              'itemPrice',
-              'category',
-              'itemName',
-              'itemImage',
-              'id',
-            ],
-            include: [
-              {
-                model: users,
-                as: 'owner',
-                attributes: [
-                  'names',
-                  'email',
-                  'phoneNumber',
-                  'organization',
-                  'state',
-                  'city',
-                  'address',
-                  'id',
-                ],
-              },
-            ],
-          },
-        ],
       });
       if (myproforma.length < 1) {
         return res.status(404).json({
@@ -115,6 +84,7 @@ class orderController {
         message: 'Get proforma successful',
       });
     } catch (error) {
+      console.log(error);
       return res.status(500).json({
         error: 'Failed to get proform items',
       });
@@ -178,44 +148,35 @@ class orderController {
       const oneproforma = await proforma.findOne({
         where: {
           id,
-        },
-        include: [
-          {
-            model: items,
-            as: 'items',
-            attributes: [
-              'itemPrice',
-              'category',
-              'itemName',
-              'itemImage',
-              'id',
-            ],
-            include: [
-              {
-                model: users,
-                as: 'owner',
-                attributes: [
-                  'names',
-                  'email',
-                  'phoneNumber',
-                  'organization',
-                  'state',
-                  'city',
-                  'address',
-                  'id',
-                ],
-              },
-            ],
-          },
-        ],
+        }
       });
       if (oneproforma.length < 1) {
         return res.status(404).json({
           error: 'No proforma Item found',
         });
       }
+
+      const proformaItem = oneproforma.itemsArray.map(async itemId => {
+        const itemDetails = await items.findByPk(itemId);
+        // const item = {
+        //   itemPrice: itemDetails.itemPrice,
+        //   itemName: itemDetails.itemName,
+        // };
+
+        return {
+          itemDetails,
+          // item1: await items.findOne({
+          //   where: {
+          //     id: itemId,
+          //   },
+          // }),
+        };
+      });
+
+      const proformaItems = await Promise.all(proformaItem);
       return res.status(200).json({
         oneproforma,
+        proformaItems,
         message: 'Get proforma item successful',
       });
     } catch (error) {

@@ -17,29 +17,10 @@ export default (sequelize, DataTypes) => {
           key: 'id',
         },
       },
-      itemOwnerId: {
-        type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-          model: 'users',
-          key: 'id',
-        },
-      },
-      itemId: {
-        type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-          model: 'items',
-          key: 'id',
-        },
-      },
-      category: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        references: {
-          model: 'items',
-          key: 'category',
-        },
+      itemsArray: {
+        type: DataTypes.ARRAY(DataTypes.JSON),
+        allowNull: true,
+        defaultValue: [],
       },
       pickupDate: {
         type: DataTypes.STRING,
@@ -51,14 +32,6 @@ export default (sequelize, DataTypes) => {
         allowNull: false,
         required: true,
       },
-      pickup: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      dropoff: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
       status: {
         type: DataTypes.ENUM,
         allowNull: false,
@@ -69,11 +42,6 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false,
-      },
-      amount: {
-        type: DataTypes.DECIMAL(10, 2),
-        defaultValue: 0.0,
-        allowNull: false,
       },
       paymentType: {
         type: DataTypes.ENUM,
@@ -89,20 +57,15 @@ export default (sequelize, DataTypes) => {
   );
   proforma.associate = (models) => {
     proforma.belongsTo(models.users, {
-      as: 'owner',
-      foreignKey: 'itemOwnerId',
-    });
-
-    proforma.belongsTo(models.users, {
       as: 'client',
       foreignKey: 'clientId',
     });
 
-    proforma.belongsTo(models.items, {
-      as: 'items',
-      foreignKey: 'itemId',
-      onDelete: 'CASCADE',
-    });
+    // proforma.belongsTo(models.items, {
+    //   as: 'items',
+    //   foreignKey: 'itemId',
+    //   onDelete: 'CASCADE',
+    // });
   };
   return proforma;
 };

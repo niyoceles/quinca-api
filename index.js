@@ -29,7 +29,7 @@ app.all('*', (_req, res) => {
 });
 
 // Starting server
-const server = app.listen(process.env.PORT || 4000, () => {
+const server = app.listen(process.env.PORT || 3000, () => {
 	console.log(`Server running on ${server.address().port}`);
 });
 
