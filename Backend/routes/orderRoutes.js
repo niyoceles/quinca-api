@@ -2,20 +2,23 @@ import express from 'express';
 import orderController from '../controllers/orderController';
 import orderValidation from '../validations/orderValidation';
 // import itemValidation from '../validations/itemValidation';
-import { checkToken } from '../helpers';
+import {
+  checkToken
+} from '../helpers';
 
 const router = express.Router();
 // client create an order
 router.post(
-	'/:itemOwnerId',
-	checkToken,
-	// itemValidation.validateItemId,
-	orderValidation.validateOrder,
-	orderController.createOrder
+  '/',
+  checkToken,
+  // itemValidation.validateItemId,
+  orderValidation.validateOrder,
+  orderController.createOrder
 );
 
 router.get('/', checkToken, orderController.myOrders);
-router.get('/:id', checkToken, orderController.getOrder);
+router.get('/all', checkToken, orderController.getOrders);
+router.get('/:id', checkToken, orderController.getSingleOrder);
 router.put('/pay', checkToken, orderController.onlinePayment);
 router.delete('/', checkToken, orderController.cancelOrder);
 // owner

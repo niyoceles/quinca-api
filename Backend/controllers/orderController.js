@@ -12,12 +12,12 @@ const {
 class orderController {
   // client order
   static async createOrder(req, res) {
-    const {
-      itemOwnerId
-    } = req.params;
+    // const {
+    //   itemOwnerId
+    // } = req.params;
 
     const {
-      startDate, endDate, itemsArray, category
+      needDate, deadline, itemsArray, amount
     } = req.body;
 
     try {
@@ -31,39 +31,38 @@ class orderController {
         });
       }
 
-      const orderItem = itemsArray.map(async itemId => {
-        const itemDetails = await items.findByPk(itemId);
-        const arrivalDateObj = new Date(startDate);
-        const leavingDateObj = new Date(endDate);
-        const duration = Math.round(
-          (leavingDateObj - arrivalDateObj) / (24 * 3600 * 1000)
-        );
-        const amount = duration * itemDetails.itemPrice;
+      // const orderItem = itemsArray.map(async itemId => {
+      //   const itemDetails = await items.findByPk(itemId);
+      //   const arrivalDateObj = new Date(needDate);
+      //   const leavingDateObj = new Date(deadline);
+      //   const duration = Math.round(
+      //     (leavingDateObj - arrivalDateObj) / (24 * 3600 * 1000)
+      //   );
+      //   const amount = duration * itemDetails.itemPrice;
 
-        const order = await orders.create({
-          clientId: userClient.id,
-          itemOwnerId,
-          itemId,
-          category,
-          startDate,
-          endDate,
-          amount,
-        });
-        const item = await itemService.changeStatus(itemId, false);
-
-        return {
-          orderId: order.id,
-          item: await items.findOne({
-            where: {
-              id: item,
-            },
-          }),
-        };
+      const order = await orders.create({
+        clientId: userClient.id,
+        // itemOwnerId,
+        itemsArray,
+        needDate,
+        deadline,
+        amount,
       });
+        // const item = await itemService.changeStatus(itemId, false);
 
-      const orderedItems = await Promise.all(orderItem);
+      //   return {
+      //     orderId: order.id,
+      //     item: await items.findOne({
+      //       where: {
+      //         id: itemId,
+      //       },
+      //     }),
+      //   };
+      // });
+
+      // const orderedItems = await Promise.all(orderItem);
       return res.status(201).json({
-        orderedItems,
+        order,
         message: 'ordered successful created',
       });
     } catch (error) {
@@ -79,35 +78,6 @@ class orderController {
         where: {
           clientId: req.decoded.id,
         },
-        include: [
-          {
-            model: items,
-            as: 'items',
-            attributes: [
-              'itemPrice',
-              'category',
-              'itemName',
-              'itemImage',
-              'id',
-            ],
-            include: [
-              {
-                model: users,
-                as: 'owner',
-                attributes: [
-                  'names',
-                  'email',
-                  'phoneNumber',
-                  'organization',
-                  'state',
-                  'city',
-                  'address',
-                  'id',
-                ],
-              },
-            ],
-          },
-        ],
       });
       if (myordered.length < 1) {
         return res.status(404).json({
@@ -125,15 +95,56 @@ class orderController {
     }
   }
 
-  static async getOrder(req, res) {
+
+  static async getSingleOrder(req, res) {
     const {
       id
     } = req.params;
     try {
-      const orderedItem = await orders.findAll({
+      const oneproforma = await orders.findOne({
         where: {
           id,
-        },
+        }
+      });
+      if (oneproforma.length < 1) {
+        return res.status(404).json({
+          error: 'No order found',
+        });
+      }
+
+      const proformaItem = oneproforma.itemsArray.map(async itemId => {
+        const itemDetails = await items.findByPk(itemId);
+        // const item = {
+        //   itemPrice: itemDetails.itemPrice,
+        //   itemName: itemDetails.itemName,
+        // };
+
+        return {
+          itemDetails,
+          // item1: await items.findOne({
+          //   where: {
+          //     id: itemId,
+          //   },
+          // }),
+        };
+      });
+
+      const proformaItems = await Promise.all(proformaItem);
+      return res.status(200).json({
+        oneproforma,
+        proformaItems,
+        message: 'Get proforma item successful',
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: 'Failed to get ordered item',
+      });
+    }
+  }
+
+  static async getOrders(req, res) {
+    try {
+      const orderedItem = await orders.findAll({
         include: [
           {
             model: items,
