@@ -8,15 +8,16 @@ export default (sequelize, DataTypes) => {
         allowNull: false,
         primaryKey: true,
       },
-      clientId: {
-        type: DataTypes.UUID,
+      clientEmail: {
+        type: DataTypes.STRING,
         allowNull: false,
         required: true,
         references: {
-          model: 'users',
-          key: 'id',
+          model: 'clients',
+          key: 'email',
         },
       },
+
       itemsArray: {
         type: DataTypes.ARRAY(DataTypes.JSON),
         allowNull: true,
@@ -56,16 +57,10 @@ export default (sequelize, DataTypes) => {
     }
   );
   proforma.associate = (models) => {
-    proforma.belongsTo(models.users, {
+    proforma.belongsTo(models.clients, {
       as: 'client',
-      foreignKey: 'clientId',
+      foreignKey: 'clientEmail',
     });
-
-    // proforma.belongsTo(models.items, {
-    //   as: 'items',
-    //   foreignKey: 'itemId',
-    //   onDelete: 'CASCADE',
-    // });
   };
   return proforma;
 };

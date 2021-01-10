@@ -10,7 +10,7 @@ const router = express.Router();
 // client create an order
 router.post(
   '/',
-  checkToken,
+  // checkToken,
   // itemValidation.validateItemId,
   orderValidation.validateOrder,
   orderController.createOrder
@@ -18,7 +18,7 @@ router.post(
 
 router.get('/', checkToken, orderController.myOrders);
 router.get('/all', checkToken, orderController.getOrders);
-router.get('/:id', checkToken, orderController.getSingleOrder);
+router.get('/:id', orderController.getSingleOrder);
 router.put('/pay', checkToken, orderController.onlinePayment);
 router.delete('/', checkToken, orderController.cancelOrder);
 // owner

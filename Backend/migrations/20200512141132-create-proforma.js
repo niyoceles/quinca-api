@@ -6,8 +6,8 @@ module.exports = {
       type: Sequelize.UUID,
       defaultValue: Sequelize.UUIDV4,
     },
-    clientId: {
-      type: Sequelize.UUID,
+    clientEmail: {
+      type: Sequelize.STRING,
       allowNull: false,
       required: true,
     },

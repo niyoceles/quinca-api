@@ -6,55 +6,43 @@ import proformaService from '../services/proformaServices';
 import payWithStripe from '../services/stripe';
 
 const {
-  users, items, proforma,
+  users, items, proforma, clients
 } = models;
 
 class orderController {
   // client order
   static async createProforma(req, res) {
     const {
-      pickupDate, deadline, itemsArray
+      pickupDate,
+      deadline,
+      itemsArray,
+      names,
+      email,
+      phoneNumber,
+      address,
+      location,
     } = req.body;
 
     try {
-      const userClient = await userService.checkingUser(
-        req.decoded.email,
-        'client'
+      const userClient = await userService.createClient(
+        names,
+        email,
+        phoneNumber,
+        address,
+        location
       );
-      if (!userClient) {
+      if (!userClient[0].email) {
         return res.status(401).json({
-          error: 'Not Authorized to make order, Please signup as client',
+          error: 'Failed to create client',
         });
       }
 
-      // const proformaItem = itemsArray.map(async itemId => {
-      // const itemDetails = await items.findByPk(itemId);
-      // const arrivalDateObj = new Date(pickupDate);
-      // const leavingDateObj = new Date(deadline);
-      // const duration = Math.round(
-      //   (leavingDateObj - arrivalDateObj) / (24 * 3600 * 1000)
-      // );
-      // const amount = duration * itemDetails.itemPrice;
-
       const newProforma = await proforma.create({
-        clientId: userClient.id,
+        clientEmail: userClient[0].email,
         itemsArray,
         pickupDate,
         deadline,
       });
-        // const item = await itemService.changeStatus(itemId, false);
-
-      //   return {
-      //     proformaId: newProforma.id,
-      //     item: await items.findOne({
-      //       where: {
-      //         id: itemId,
-      //       },
-      //     }),
-      //   };
-      // });
-
-      // const proformaItems = await Promise.all(proformaItem);
       return res.status(201).json({
         newProforma,
         message: 'proforma successful created',
@@ -66,59 +54,19 @@ class orderController {
     }
   }
 
-  static async myProforma(req, res) {
-    try {
-      const myproforma = await proforma.findAll({
-        where: {
-          clientId: req.decoded.id,
-        },
-      });
-      if (myproforma.length < 1) {
-        return res.status(404).json({
-          error: 'No Order Item found',
-        });
-      }
-      return res.status(200).json({
-        myproforma,
-        message: 'Get proforma successful',
-      });
-    } catch (error) {
-      console.log(error);
-      return res.status(500).json({
-        error: 'Failed to get proform items',
-      });
-    }
-  }
-
   static async getProforma(req, res) {
     try {
       const allproforma = await proforma.findAll({
         include: [
           {
-            model: items,
-            as: 'items',
+            model: clients,
+            as: 'client',
             attributes: [
-              'itemPrice',
-              'category',
-              'itemName',
-              'itemImage',
-              'id',
-            ],
-            include: [
-              {
-                model: users,
-                as: 'owner',
-                attributes: [
-                  'names',
-                  'email',
-                  'phoneNumber',
-                  'organization',
-                  'state',
-                  'city',
-                  'address',
-                  'id',
-                ],
-              },
+              'names',
+              'email',
+              'phoneNumber',
+              'address',
+              'location',
             ],
           },
         ],
@@ -130,11 +78,11 @@ class orderController {
       }
       return res.status(200).json({
         allproforma,
-        message: 'Get proforma  successful',
+        message: 'Get all proforma successful',
       });
     } catch (error) {
       return res.status(500).json({
-        error: 'Failed to get ordered item',
+        error: 'Failed to get all proforma',
       });
     }
   }
@@ -147,7 +95,20 @@ class orderController {
       const oneproforma = await proforma.findOne({
         where: {
           id,
-        }
+        },
+        include: [
+          {
+            model: clients,
+            as: 'client',
+            attributes: [
+              'names',
+              'email',
+              'phoneNumber',
+              'address',
+              'location',
+            ],
+          },
+        ],
       });
       if (oneproforma.length < 1) {
         return res.status(404).json({
@@ -156,7 +117,7 @@ class orderController {
       }
 
       const proformaItem = oneproforma.itemsArray.map(async itemId => {
-        const itemDetails = await items.findByPk(itemId);
+        const itemDetails = await items.findByPk(itemId.id);
         // const item = {
         //   itemPrice: itemDetails.itemPrice,
         //   itemName: itemDetails.itemName,
@@ -180,7 +141,7 @@ class orderController {
       });
     } catch (error) {
       return res.status(500).json({
-        error: 'Failed to get ordered item',
+        error: 'Failed to get proforma items',
       });
     }
   }

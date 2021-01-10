@@ -8,23 +8,16 @@ export default (sequelize, DataTypes) => {
         allowNull: false,
         primaryKey: true,
       },
-      clientId: {
-        type: DataTypes.UUID,
+      clientEmail: {
+        type: DataTypes.STRING,
         allowNull: false,
         required: true,
         references: {
-          model: 'users',
-          key: 'id',
+          model: 'clients',
+          key: 'email',
         },
       },
-      // itemOwnerId: {
-      //   type: DataTypes.UUID,
-      //   allowNull: false,
-      //   references: {
-      //     model: 'users',
-      //     key: 'id',
-      //   },
-      // },
+
       itemsArray: {
         type: DataTypes.ARRAY(DataTypes.JSON),
         allowNull: true,
@@ -83,14 +76,8 @@ export default (sequelize, DataTypes) => {
 
     orders.belongsTo(models.users, {
       as: 'client',
-      foreignKey: 'clientId',
+      foreignKey: 'clientEmail',
     });
-
-    // orders.belongsTo(models.items, {
-    //   as: 'items',
-    //   foreignKey: 'itemId',
-    //   onDelete: 'CASCADE',
-    // });
   };
   return orders;
 };

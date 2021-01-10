@@ -11,17 +11,16 @@ const router = express.Router();
 router.post(
   '/',
   // '/:itemOwnerId',
-  checkToken,
+  // checkToken,
   // itemValidation.validateItemId,
   // orderValidation.validateOrder,
   proformaController.createProforma
 );
 
-router.get('/my', checkToken, proformaController.myProforma);
 router.get('/', checkToken, proformaController.getProforma);
-router.get('/:id', checkToken, proformaController.getSingleProforma);
-router.put('/pay', checkToken, proformaController.onlinePayment);
-router.delete('/', checkToken, proformaController.cancelOrder);
+router.get('/:id', proformaController.getSingleProforma);
+router.put('/pay', proformaController.onlinePayment);
+router.delete('/', proformaController.cancelOrder);
 // owner
 router.patch('/', checkToken, proformaController.confirmOrder);
 router.get('/supplier', checkToken, proformaController.ourOrders);
