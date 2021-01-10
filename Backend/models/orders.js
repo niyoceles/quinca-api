@@ -69,12 +69,7 @@ export default (sequelize, DataTypes) => {
     }
   );
   orders.associate = (models) => {
-    // orders.belongsTo(models.users, {
-    //   as: 'owner',
-    //   foreignKey: 'itemOwnerId',
-    // });
-
-    orders.belongsTo(models.users, {
+    orders.belongsTo(models.clients, {
       as: 'client',
       foreignKey: 'clientEmail',
     });

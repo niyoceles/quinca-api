@@ -6,66 +6,52 @@ import orderService from '../services/orderServices';
 import payWithStripe from '../services/stripe';
 
 const {
-  users, items, orders
+  items, orders, clients
 } = models;
 
 class orderController {
   // client order
   static async createOrder(req, res) {
-    // const {
-    //   itemOwnerId
-    // } = req.params;
-
     const {
-      needDate, deadline, itemsArray, amount
+      needDate,
+      deadline,
+      itemsArray,
+      amount,
+      names,
+      email,
+      phoneNumber,
+      address,
+      location,
     } = req.body;
 
     try {
-      const userClient = await userService.checkingUser(
-        req.decoded.email,
-        'client'
+      const userClient = await userService.createClient(
+        names,
+        email,
+        phoneNumber,
+        address,
+        location
       );
-      if (!userClient) {
+      if (!userClient[0].email) {
         return res.status(401).json({
-          error: 'Not Authorized to make order, Please signup as client',
+          error: 'Failed to create client',
         });
       }
 
-      // const orderItem = itemsArray.map(async itemId => {
-      //   const itemDetails = await items.findByPk(itemId);
-      //   const arrivalDateObj = new Date(needDate);
-      //   const leavingDateObj = new Date(deadline);
-      //   const duration = Math.round(
-      //     (leavingDateObj - arrivalDateObj) / (24 * 3600 * 1000)
-      //   );
-      //   const amount = duration * itemDetails.itemPrice;
-
       const order = await orders.create({
-        clientId: userClient.id,
-        // itemOwnerId,
+        clientEmail: userClient[0].email,
         itemsArray,
         needDate,
         deadline,
         amount,
       });
-        // const item = await itemService.changeStatus(itemId, false);
 
-      //   return {
-      //     orderId: order.id,
-      //     item: await items.findOne({
-      //       where: {
-      //         id: itemId,
-      //       },
-      //     }),
-      //   };
-      // });
-
-      // const orderedItems = await Promise.all(orderItem);
       return res.status(201).json({
         order,
         message: 'ordered successful created',
       });
     } catch (error) {
+      console.log(error);
       return res.status(500).json({
         error: 'Failed to make order',
       });
@@ -95,7 +81,6 @@ class orderController {
     }
   }
 
-
   static async getSingleOrder(req, res) {
     const {
       id
@@ -104,7 +89,20 @@ class orderController {
       const oneproforma = await orders.findOne({
         where: {
           id,
-        }
+        },
+        include: [
+          {
+            model: clients,
+            as: 'client',
+            attributes: [
+              'names',
+              'email',
+              'phoneNumber',
+              'address',
+              'location',
+            ],
+          },
+        ],
       });
       if (oneproforma.length < 1) {
         return res.status(404).json({
@@ -113,11 +111,7 @@ class orderController {
       }
 
       const proformaItem = oneproforma.itemsArray.map(async itemId => {
-        const itemDetails = await items.findByPk(itemId);
-        // const item = {
-        //   itemPrice: itemDetails.itemPrice,
-        //   itemName: itemDetails.itemName,
-        // };
+        const itemDetails = await items.findByPk(itemId.id);
 
         return {
           itemDetails,
@@ -147,30 +141,14 @@ class orderController {
       const orderedItem = await orders.findAll({
         include: [
           {
-            model: items,
-            as: 'items',
+            model: clients,
+            as: 'client',
             attributes: [
-              'itemPrice',
-              'category',
-              'itemName',
-              'itemImage',
-              'id',
-            ],
-            include: [
-              {
-                model: users,
-                as: 'owner',
-                attributes: [
-                  'names',
-                  'email',
-                  'phoneNumber',
-                  'organization',
-                  'state',
-                  'city',
-                  'address',
-                  'id',
-                ],
-              },
+              'names',
+              'email',
+              'phoneNumber',
+              'address',
+              'location',
             ],
           },
         ],

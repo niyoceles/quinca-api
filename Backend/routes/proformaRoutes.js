@@ -19,10 +19,7 @@ router.post(
 
 router.get('/', checkToken, proformaController.getProforma);
 router.get('/:id', proformaController.getSingleProforma);
-router.put('/pay', proformaController.onlinePayment);
 router.delete('/', proformaController.cancelOrder);
 // owner
 router.patch('/', checkToken, proformaController.confirmOrder);
-router.get('/supplier', checkToken, proformaController.ourOrders);
-
 export default router;

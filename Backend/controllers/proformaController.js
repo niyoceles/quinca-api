@@ -146,49 +146,6 @@ class orderController {
     }
   }
 
-  static async onlinePayment(req, res) {
-    // not tested
-    const {
-      paymentType, orderedIdArray
-    } = req.body;
-
-    if (paymentType === 'stripe') {
-      payWithStripe(req, res);
-    }
-    try {
-      const orderedItem = orderedIdArray.map(async id => {
-        const orderedDetails = await proforma.findByPk(id);
-
-        const payOrderedItem = await proformaService.payOrdered(
-          id,
-          req.decoded.id,
-          paymentType
-        );
-        const item = await itemService.changeStatus(
-          orderedDetails.itemId,
-          false
-        );
-        return {
-          payOrderedItem,
-          item: await items.findOne({
-            where: {
-              id: item,
-            },
-          }),
-        };
-      });
-      const paidOrder = await Promise.all(orderedItem);
-      return res.status(200).json({
-        paidOrder,
-        message: 'Order paid successful',
-      });
-    } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to pay order',
-      });
-    }
-  }
-
   static async cancelOrder(req, res) {
     // we will need another instruction here on cancel order
     const {
@@ -262,29 +219,6 @@ class orderController {
     } catch (error) {
       return res.status(500).json({
         error: 'Failed to confirm order',
-      });
-    }
-  }
-
-  static async ourOrders(req, res) {
-    try {
-      const ourordered = await proforma.findAll({
-        where: {
-          itemOwnerId: req.decoded.id,
-        },
-      });
-      if (ourordered.length < 1) {
-        return res.status(404).json({
-          error: 'No Ordered Item found',
-        });
-      }
-      return res.status(200).json({
-        ourordered,
-        message: 'Get ordered successful',
-      });
-    } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to get ordered items',
       });
     }
   }
