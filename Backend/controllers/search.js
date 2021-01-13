@@ -12,7 +12,7 @@ const {
 
 export const search = async (req, res) => {
   const arrayResults = [];
-  const client = searchAlgolia(process.env.ALGO_APP_ID, process.env.ALGO_SEARCH_ONLY);
+  const client = searchAlgolia(process.env.ALGO_APP_ID, process.env.ADMIN_KEY);
   const index = client.initIndex('quinca_paradi');
   // index.clear();
   const {
@@ -22,7 +22,7 @@ export const search = async (req, res) => {
     keyword
   } = req.query;
   try {
-    const articlesResults = await items.findAll({
+    const itemsResults = await items.findAll({
       order: [['createdAt', 'DESC']],
       include: [
         {
@@ -32,7 +32,7 @@ export const search = async (req, res) => {
         },
       ],
     });
-    articlesResults.map((e) => {
+    itemsResults.map((e) => {
       arrayResults.push({
         id: e.id,
         itemName: e.itemName,
@@ -58,7 +58,6 @@ export const search = async (req, res) => {
       });
     });
   } catch (ex) {
-    console.log(ex);
     return res.status(500).json({
       error: 'something went wrong',
     });

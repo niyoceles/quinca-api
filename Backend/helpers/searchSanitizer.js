@@ -1,9 +1,9 @@
 export const sanitize = (object) => {
-  const articleHolder = [];
+  const itemHolder = [];
   const objectStr = Object.prototype.toString.call(object);
   if (objectStr === '[object Array]' && objectStr) {
     object.forEach((element) => {
-      articleHolder.push(
+      itemHolder.push(
         Object.keys(element).reduce((obj, key) => {
           if (key !== '_highlightResult' && key !== 'objectID') {
             obj[key] = element[key];
@@ -14,5 +14,5 @@ export const sanitize = (object) => {
       );
     });
   }
-  return articleHolder;
+  return itemHolder;
 };
