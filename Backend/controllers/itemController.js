@@ -211,19 +211,11 @@ class itemController {
     } = req.body;
 
     try {
-      const searchResult = await items.findAll({
+      const results = await items.findAll({
         where: {
-          [Op.or]: [
-            {
-              itemName: search,
-            },
-            {
-              itemPrice: search,
-            },
-            {
-              itemDescription: search,
-            },
-          ],
+          itemName: {
+            [Op.like]: `%${search}%`
+          },
         },
         include: [
           {
@@ -233,18 +225,13 @@ class itemController {
           },
         ],
       });
-      if (!searchResult) {
-        return res.status(404).json({
-          error: 'Not found items',
-        });
-      }
-      if (searchResult.length < 1) {
+      if (results.length < 1) {
         return res.status(404).json({
           error: 'No Item found',
         });
       }
       return res.status(200).json({
-        searchResult,
+        results,
         message: 'Get items successful',
       });
     } catch (error) {

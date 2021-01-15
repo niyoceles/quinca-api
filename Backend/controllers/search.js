@@ -15,11 +15,9 @@ export const search = async (req, res) => {
   const client = searchAlgolia(process.env.ALGO_APP_ID, process.env.ADMIN_KEY);
   const index = client.initIndex('quinca_paradi');
   // index.clear();
+  // client.clearCache();
   const {
     itemName,
-    itemDescription,
-    itemPrice,
-    keyword
   } = req.query;
   try {
     const itemsResults = await items.findAll({
@@ -46,7 +44,7 @@ export const search = async (req, res) => {
       return arrayResults;
     });
     index.addObjects(arrayResults);
-    index.search(`${itemName || itemDescription || itemPrice || keyword}`, (err, results) => {
+    index.search(`${itemName}`, (err, results) => {
       const sanitizedResults = sanitize(results.hits);
       if (sanitizedResults.length !== 0) {
         return res.status(200).json({
