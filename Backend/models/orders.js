@@ -66,6 +66,8 @@ export default (sequelize, DataTypes) => {
       },
     },
     {
+      tableName: 'orders',
+      // paranoid: true,
     }
   );
   orders.associate = (models) => {

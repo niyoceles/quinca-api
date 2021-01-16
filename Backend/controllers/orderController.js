@@ -58,28 +58,28 @@ class orderController {
     }
   }
 
-  static async myOrders(req, res) {
-    try {
-      const myordered = await orders.findAll({
-        where: {
-          clientId: req.decoded.id,
-        },
-      });
-      if (myordered.length < 1) {
-        return res.status(404).json({
-          error: 'No Order Item found',
-        });
-      }
-      return res.status(200).json({
-        myordered,
-        message: 'Get ordered successful',
-      });
-    } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to get ordered items',
-      });
-    }
-  }
+  // static async myOrders(req, res) {
+  //   try {
+  //     const myordered = await orders.findAll({
+  //       where: {
+  //         id: req.decoded.id,
+  //       },
+  //     });
+  //     if (myordered.length < 1) {
+  //       return res.status(404).json({
+  //         error: 'No Order Item found',
+  //       });
+  //     }
+  //     return res.status(200).json({
+  //       myordered,
+  //       message: 'Get ordered successful',
+  //     });
+  //   } catch (error) {
+  //     return res.status(500).json({
+  //       error: 'Failed to get my order ordered items',
+  //     });
+  //   }
+  // }
 
   static async getSingleOrder(req, res) {
     const {
@@ -138,7 +138,7 @@ class orderController {
 
   static async getOrders(req, res) {
     try {
-      const orderedItem = await orders.findAll({
+      const allorders = await orders.findAll({
         include: [
           {
             model: clients,
@@ -153,13 +153,13 @@ class orderController {
           },
         ],
       });
-      if (orderedItem.length < 1) {
+      if (allorders.length < 1) {
         return res.status(404).json({
           error: 'No Order Item found',
         });
       }
       return res.status(200).json({
-        orderedItem,
+        allorders,
         message: 'Get ordered item successful',
       });
     } catch (error) {

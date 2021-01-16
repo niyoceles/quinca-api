@@ -16,8 +16,7 @@ router.post(
   orderController.createOrder
 );
 
-router.get('/', checkToken, orderController.myOrders);
-router.get('/all', checkToken, orderController.getOrders);
+router.get('/', checkToken, orderController.getOrders);
 router.get('/:id', orderController.getSingleOrder);
 router.put('/pay', checkToken, orderController.onlinePayment);
 router.delete('/', checkToken, orderController.cancelOrder);

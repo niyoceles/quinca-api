@@ -62,10 +62,10 @@ export default (sequelize, DataTypes) => {
     }
   );
   items.associate = (models) => {
-    items.hasMany(models.orders, {
-      foreignKey: 'itemId',
-      onDelete: 'CASCADE',
-    });
+    // items.hasMany(models.orders, {
+    //   foreignKey: 'itemId',
+    //   onDelete: 'CASCADE',
+    // });
     items.belongsTo(models.users, {
       as: 'owner',
       foreignKey: 'itemOwnerId',
