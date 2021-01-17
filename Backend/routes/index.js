@@ -7,6 +7,7 @@ import order from './orderRoutes';
 import category from './categoryRoutes';
 import proforma from './proformaRoutes';
 import search from './search';
+import contact from './contactRoutes';
 
 const router = express.Router();
 
@@ -17,6 +18,6 @@ router.use('/order', order);
 router.use('/category', category);
 router.use('/proforma', proforma);
 router.use('/search', search);
-
+router.use('/contact', contact);
 
 export default router;
