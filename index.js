@@ -29,6 +29,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.options('*', cors());
 app.use('/api', router);
 
 // Error handling to catch 404
