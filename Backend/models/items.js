@@ -48,9 +48,10 @@ export default (sequelize, DataTypes) => {
         allowNull: false,
       },
       itemPrice: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: true,
         required: true,
+        defaultValue: 0
       },
       status: {
         allowNull: false,

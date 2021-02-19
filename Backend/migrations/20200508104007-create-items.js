@@ -39,9 +39,10 @@ module.exports = {
       allowNull: false,
     },
     itemPrice: {
-      type: Sequelize.STRING,
+      type: Sequelize.INTEGER,
       allowNull: true,
       required: true,
+      defaultValue: 0,
     },
     status: {
       allowNull: false,
