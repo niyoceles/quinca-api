@@ -86,7 +86,7 @@ class orderController {
       id
     } = req.params;
     try {
-      const oneproforma = await orders.findOne({
+      const oneorder = await orders.findOne({
         where: {
           id,
         },
@@ -104,13 +104,13 @@ class orderController {
           },
         ],
       });
-      if (oneproforma.length < 1) {
+      if (oneorder.length < 1) {
         return res.status(404).json({
           error: 'No order found',
         });
       }
 
-      const proformaItem = oneproforma.itemsArray.map(async itemId => {
+      const orderItem = oneorder.itemsArray.map(async itemId => {
         const itemDetails = await items.findByPk(itemId.id);
 
         return {
@@ -123,11 +123,11 @@ class orderController {
         };
       });
 
-      const proformaItems = await Promise.all(proformaItem);
+      const orderItems = await Promise.all(orderItem);
       return res.status(200).json({
-        oneproforma,
-        proformaItems,
-        message: 'Get proforma item successful',
+        oneorder,
+        orderItems,
+        message: 'Get order item successful',
       });
     } catch (error) {
       return res.status(500).json({
