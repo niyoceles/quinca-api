@@ -2,9 +2,7 @@ import express from 'express';
 import orderController from '../controllers/orderController';
 import orderValidation from '../validations/orderValidation';
 // import itemValidation from '../validations/itemValidation';
-import {
-  checkToken
-} from '../helpers';
+import { checkToken } from '../helpers';
 
 const router = express.Router();
 // client create an order

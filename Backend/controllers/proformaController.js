@@ -5,9 +5,7 @@ import userService from '../services/userServices';
 import proformaService from '../services/proformaServices';
 import payWithStripe from '../services/stripe';
 
-const {
-  users, items, proforma, clients
-} = models;
+const { users, items, proforma, clients } = models;
 
 class orderController {
   // client order
@@ -88,9 +86,7 @@ class orderController {
   }
 
   static async getSingleProforma(req, res) {
-    const {
-      id
-    } = req.params;
+    const { id } = req.params;
     try {
       const oneproforma = await proforma.findOne({
         where: {
@@ -116,22 +112,26 @@ class orderController {
         });
       }
 
-      const proformaItem = oneproforma.itemsArray.map(async itemId => {
-        const itemDetails = await items.findByPk(itemId.id);
-        // const item = {
-        //   itemPrice: itemDetails.itemPrice,
-        //   itemName: itemDetails.itemName,
-        // };
+      const proformaItem = oneproforma.itemsArray.map(
+        async (itemId) => {
+          const itemDetails = await items.findByPk(
+            itemId.id
+          );
+          // const item = {
+          //   itemPrice: itemDetails.itemPrice,
+          //   itemName: itemDetails.itemName,
+          // };
 
-        return {
-          itemDetails,
-          // item1: await items.findOne({
-          //   where: {
-          //     id: itemId,
-          //   },
-          // }),
-        };
-      });
+          return {
+            itemDetails,
+            // item1: await items.findOne({
+            //   where: {
+            //     id: itemId,
+            //   },
+            // }),
+          };
+        }
+      );
 
       const proformaItems = await Promise.all(proformaItem);
       return res.status(200).json({
@@ -146,19 +146,56 @@ class orderController {
     }
   }
 
+  static async getMyProforma(req, res) {
+    try {
+      const { email } = req.decoded;
+      console.log('===request===>', email);
+      const myproforma = await proforma.findAll({
+        where: {
+          clientEmail: email,
+        },
+        include: [
+          {
+            model: clients,
+            as: 'client',
+            attributes: [
+              'names',
+              'email',
+              'phoneNumber',
+              'address',
+              'location',
+            ],
+          },
+        ],
+      });
+      if (myproforma.length < 1) {
+        return res.status(404).json({
+          error: 'No proforma found',
+        });
+      }
+      return res.status(200).json({
+        myproforma,
+        message: 'Get all proforma successful',
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: 'Failed to get all proforma',
+      });
+    }
+  }
+
   static async cancelOrder(req, res) {
     // we will need another instruction here on cancel order
-    const {
-      orderedIdArray
-    } = req.body;
+    const { orderedIdArray } = req.body;
     try {
-      const orderedItem = orderedIdArray.map(async id => {
+      const orderedItem = orderedIdArray.map(async (id) => {
         const orderedDetails = await proforma.findByPk(id);
 
-        const cancelOrderedItem = await proformaService.cancelOrdered(
-          id,
-          req.decoded.id
-        );
+        const cancelOrderedItem =
+          await proformaService.cancelOrdered(
+            id,
+            req.decoded.id
+          );
         const item = await itemService.changeStatus(
           orderedDetails.itemId,
           true
@@ -187,17 +224,16 @@ class orderController {
   // owner of item
   static async confirmOrder(req, res) {
     // confirming ordered will automatically reset order as it is paid
-    const {
-      orderedIdArray
-    } = req.body;
+    const { orderedIdArray } = req.body;
     try {
-      const orderedItem = orderedIdArray.map(async id => {
+      const orderedItem = orderedIdArray.map(async (id) => {
         const orderedDetails = await proforma.findByPk(id);
 
-        const confirmOrderedItem = await proformaService.confirmOrdered(
-          id,
-          req.decoded.id
-        );
+        const confirmOrderedItem =
+          await proformaService.confirmOrdered(
+            id,
+            req.decoded.id
+          );
         const item = await itemService.changeStatus(
           orderedDetails.itemId,
           false
