@@ -5,9 +5,12 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 bluebird.promisifyAll(redis);
-const client = redis.createClient();
+
+const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const client = redis.createClient(redisUrl);
 
 client.on('error', (err) => {
-  console.log('Error ' + err);
+  console.log(`Redis Connection Error: ${err}`);
 });
+
 export default client;

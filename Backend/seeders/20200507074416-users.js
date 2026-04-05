@@ -1,4 +1,5 @@
-export const up = (queryInterface, Sequelize) =>
+module.exports = {
+	up: (queryInterface, Sequelize) =>
 	queryInterface.bulkInsert(
 		'users',
 		[
@@ -59,6 +60,7 @@ export const up = (queryInterface, Sequelize) =>
 			},
 		],
 		{}
-	);
-export const down = (queryInterface, Sequelize) =>
-	queryInterface.bulkDelete('users', null, {});
+	),
+	down: (queryInterface, Sequelize) =>
+		queryInterface.bulkDelete('users', null, {}),
+};

@@ -4,8 +4,10 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "concurrently \"npm run migrate && npm run seed\" \"babel-node index.js\"",
-        "dev": "NODE_ENV=development nodemon index.js --exec babel-node",
+        "start": "npm run db:create || true && npm run migrate && npm run seed && babel-node index.js",
+        "start:prod": "npm run migrate && npm run seed && node dist/index.js",
+        "build": "babel . --ignore node_modules,dist --out-dir dist",
+        "dev": "NODE_ENV=development npm run db:create || true && npm run migrate && npm run seed && nodemon index.js --exec babel-node",
         "test": "NODE_ENV=test npm run setup:test && NODE_ENV=test mocha --require @babel/register ./Backend/tests --timeout 10000 --exit",
         "db:create": "./node_modules/.bin/sequelize db:create",
         "db:create:test": "cross-env NODE_ENV=test ./node_modules/.bin/sequelize db:create",

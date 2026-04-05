@@ -269,7 +269,7 @@ class itemController {
           },
         ],
         order: [['createdAt', 'DESC']],
-        offset: (parseInt(page, 20) - 1) * limit,
+        offset: (parseInt(page, 10) - 1) * limit,
         limit,
       });
       if (allitems.length < 1) {

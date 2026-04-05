@@ -1,30 +1,29 @@
-export const up = (queryInterface, Sequelize) =>
+module.exports = {
+  up: (queryInterface, Sequelize) =>
 	queryInterface.bulkInsert(
 		'categories',
 		[
 			{
-				id: 1,
 				name: 'construction',
-				status: true,
-				createdAt: '2020-05-07 09:37:12.509+02',
-				updatedAt: '2020-05-08 09:37:12.509+02',
+        status: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
 			},
 			{
-				id: 2,
 				name: 'electricity',
-				status: true,
-				createdAt: '2020-05-07 09:37:12.509+02',
-				updatedAt: '2020-05-08 09:37:12.509+02',
+        status: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
 			},
 			{
-				id: 3,
 				name: 'plumbing',
-				status: true,
-				createdAt: '2020-05-07 09:37:12.509+02',
-				updatedAt: '2020-05-08 09:37:12.509+02',
+        status: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
 			},
 		],
 		{}
-	);
-export const down = (queryInterface, Sequelize) =>
-	queryInterface.bulkDelete('categories', null, {});
+	),
+  down: (queryInterface, Sequelize) =>
+	queryInterface.bulkDelete('categories', null, {}),
+};
