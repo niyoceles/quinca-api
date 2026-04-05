@@ -19,6 +19,17 @@ module.exports = {
     dialect: 'postgres',
     logging: false,
     seederStorage: 'sequelize',
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    }
   },
   secret_key_code: process.env.SECRET,
 };
+
+if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+  console.error('CRITICAL ERROR: DATABASE_URL is not set in environment variables.');
+  process.exit(1);
+}
