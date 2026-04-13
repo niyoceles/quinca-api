@@ -240,17 +240,12 @@ class userController {
       }
 
       return res.status(200).json({
-        User: {
+        token: Auth.generateToken(
+          checkUser.id,
           email,
-          names: checkUser.names,
-          token: Auth.generateToken(
-            checkUser.id,
-            email,
-            checkUser.names,
-            checkUser.userType
-          ),
-          type: checkUser.userType,
-        },
+          checkUser.names,
+          checkUser.userType
+        ),
         message: 'successful sign in',
       });
     } catch (error) {
