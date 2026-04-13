@@ -1,4 +1,8 @@
 import models from '../models';
+import {
+  sendSuccess,
+  sendError,
+} from '../helpers/responseHelper';
 
 const {
   categories, items, users
@@ -17,24 +21,19 @@ class categoryController {
       });
 
       if (checkCategoryExist) {
-        return res.status(403).json({
-          error: 'this categories already Exist',
-        });
+        return sendError(res, 'this categories already Exist', 403);
       }
       const newCategory = await categories.create({
         name,
       });
 
       if (newCategory) {
-        return res.status(200).json({
+        return sendSuccess(res, newCategory, 'category successful created', 201, null, {
           category: newCategory,
-          message: 'category successful created',
         });
       }
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to create an category',
-      });
+      return sendError(res, 'Failed to create an category', 500, error.message);
     }
   }
 
@@ -132,18 +131,13 @@ class categoryController {
         },
       });
       if (allcategories.length < 1) {
-        return res.status(404).json({
-          error: 'No Category found',
-        });
+        return sendError(res, 'No Category found', 404);
       }
-      return res.status(200).json({
+      return sendSuccess(res, allcategories, 'Get categories successful', 200, null, {
         allcategories,
-        message: 'Get categorys successful',
       });
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to get categorys',
-      });
+      return sendError(res, 'Failed to get categories', 500, error.message);
     }
   }
 
@@ -171,19 +165,14 @@ class categoryController {
           },
         ],
       });
-      if (!category) {
-        return res.status(404).json({
-          error: 'category not found',
-        });
+      if (category.length < 1) {
+        return sendError(res, 'category not found', 404);
       }
-      return res.status(200).json({
+      return sendSuccess(res, category, 'get category successful', 200, null, {
         category,
-        message: 'get category successful',
       });
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to get an category',
-      });
+      return sendError(res, 'Failed to get an category', 500, error.message);
     }
   }
 }

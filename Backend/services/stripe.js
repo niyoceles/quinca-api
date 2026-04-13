@@ -40,7 +40,7 @@ const payWithStripe = (req, res) => {
           result
         });
       })
-      .catch((err) => console.log(err));
+      .catch((err) => res.status(500).json({ error: 'Payment service failed' }));
   } catch (err) {
     res.send(err);
   }

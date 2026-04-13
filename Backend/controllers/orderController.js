@@ -1,9 +1,16 @@
 /* eslint-disable arrow-parens */
 import models from '../models';
-import itemService from '../services/itemServies';
+import itemService from '../services/itemServices';
 import userService from '../services/userServices';
 import orderService from '../services/orderServices';
 import payWithStripe from '../services/stripe';
+import {
+  sendSuccess,
+  sendError,
+} from '../helpers/responseHelper';
+import {
+  createAndEmitNotification
+} from '../helpers/NotificationHelper';
 
 const {
   items, orders, clients
@@ -33,9 +40,7 @@ class orderController {
         location
       );
       if (!userClient[0].email) {
-        return res.status(401).json({
-          error: 'Failed to create client',
-        });
+        return sendError(res, 'Failed to create client', 401);
       }
 
       const order = await orders.create({
@@ -46,15 +51,26 @@ class orderController {
         amount,
       });
 
-      return res.status(201).json({
+      // Notify Suppliers
+      const supplierIdArray = await Promise.all(itemsArray.map(async (item) => {
+        const itemRecord = await items.findByPk(item.id);
+        return itemRecord && itemRecord.itemOwnerId ? itemRecord.itemOwnerId : null;
+      }));
+
+      const uniqueSupplierIds = [...new Set(supplierIdArray.filter((id) => id !== null))];
+
+      await Promise.all(uniqueSupplierIds.map((supplierId) => createAndEmitNotification(
+        supplierId,
+        'New Order Received',
+        `New order placed for your items. ID: ${order.id}`,
+        'order'
+      )));
+
+      return sendSuccess(res, order, 'ordered successful created', 201, null, {
         order,
-        message: 'ordered successful created',
       });
     } catch (error) {
-      console.log(error);
-      return res.status(500).json({
-        error: 'Failed to make order',
-      });
+      return sendError(res, 'Failed to make order', 500, error.message);
     }
   }
 
@@ -239,6 +255,16 @@ class orderController {
         };
       });
       const cancelledOrder = await Promise.all(orderedItem);
+      
+      // Notify Client (using clientEmail from first order in array as they belong to same client usually)
+      if (orderedIdArray.length > 0) {
+        const firstOrder = await orders.findByPk(orderedIdArray[0]);
+        if (firstOrder && firstOrder.clientEmail) {
+          // Future: Fetch user by email to get UUID for notification room
+          // const user = await userService.findUserByEmail(firstOrder.clientEmail);
+        }
+      }
+
       return res.status(200).json({
         cancelledOrder,
         message: 'Order cancelled successful',
@@ -297,18 +323,13 @@ class orderController {
         },
       });
       if (ourordered.length < 1) {
-        return res.status(404).json({
-          error: 'No Ordered Item found',
-        });
+        return sendError(res, 'No Ordered Item found', 404);
       }
-      return res.status(200).json({
+      return sendSuccess(res, ourordered, 'Get ordered successful', 200, null, {
         ourordered,
-        message: 'Get ordered successful',
       });
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to get ordered items',
-      });
+      return sendError(res, 'Failed to get order', 500, error.message);
     }
   }
 }

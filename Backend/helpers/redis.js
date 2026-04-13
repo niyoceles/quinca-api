@@ -9,8 +9,6 @@ bluebird.promisifyAll(redis);
 const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 const client = redis.createClient(redisUrl);
 
-client.on('error', (err) => {
-  console.log(`Redis Connection Error: ${err}`);
-});
+client.on('error', () => {});
 
 export default client;

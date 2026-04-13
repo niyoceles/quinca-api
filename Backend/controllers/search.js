@@ -4,6 +4,10 @@ import models from '../models';
 import {
   sanitize
 } from '../helpers/searchSanitizer';
+import {
+  sendSuccess,
+  sendError,
+} from '../helpers/responseHelper';
 
 dotenv.config();
 const {
@@ -45,19 +49,16 @@ export const search = async (req, res) => {
     });
     index.addObjects(arrayResults);
     index.search(`${itemName}`, (err, results) => {
+      if (err) return sendError(res, 'Search failed', 500, err.message);
       const sanitizedResults = sanitize(results.hits);
       if (sanitizedResults.length !== 0) {
-        return res.status(200).json({
+        return sendSuccess(res, sanitizedResults, 'Search successful', 200, null, {
           results: sanitizedResults,
         });
       }
-      return res.status(404).json({
-        error: 'no results'
-      });
+      return sendError(res, 'no results', 404);
     });
   } catch (ex) {
-    return res.status(500).json({
-      error: 'something went wrong',
-    });
+    return sendError(res, 'something went wrong', 500, ex.message);
   }
 };

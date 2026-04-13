@@ -5,6 +5,10 @@ import dotenv from 'dotenv';
 import models from '../models';
 import Auth from '../helpers/Auth';
 import client from '../helpers/redis';
+import {
+  sendSuccess,
+  sendError,
+} from '../helpers/responseHelper';
 
 const { users } = models;
 
@@ -32,15 +36,11 @@ class userController {
     });
 
     if (checkUserEmail) {
-      return res.status(403).json({
-        error: 'this email already Exist',
-      });
+      return sendError(res, 'this email already Exist', 403);
     }
 
     if (checkUserPhone) {
-      return res.status(403).json({
-        error: 'this phone number already Exist',
-      });
+      return sendError(res, 'this phone number already Exist', 403);
     }
 
     try {
@@ -73,15 +73,14 @@ class userController {
                       </div>`,
         };
         sgMail.send(msg);
-        return res.status(201).json({
+        return sendSuccess(res, {
           token,
-          message: 'Your account successful created',
+        }, 'Your account successful created', 201, null, {
+          token,
         });
       }
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to create user account',
-      });
+      return sendError(res, 'Failed to create user account', 500, error.message);
     }
   }
 
@@ -166,14 +165,10 @@ class userController {
         };
         sgMail.send(msg);
 
-        return res.status(201).json({
-          message: 'Your account successful created',
-        });
+        return sendSuccess(res, null, 'Your account successful created', 201);
       }
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to create user account',
-      });
+      return sendError(res, 'Failed to create user account', 500, error.message);
     }
   }
 
@@ -200,14 +195,10 @@ class userController {
   static async signIn(req, res) {
     const { email, password } = req.body;
     if (!email) {
-      return res.status(400).json({
-        error: 'email is required',
-      });
+      return sendError(res, 'email is required', 400);
     }
     if (!password) {
-      return res.status(400).json({
-        error: 'password is required',
-      });
+      return sendError(res, 'password is required', 400);
     }
     try {
       const checkUser = await users.findOne({
@@ -224,46 +215,40 @@ class userController {
       });
 
       if (!checkUser) {
-        return res.status(404).json({ error: 'user not found' });
+        return sendError(res, 'user not found', 404);
       }
 
       const compared = Auth.comparePassword(password, checkUser.password);
       if (!compared) {
-        return res.status(401).json({
-          error: 'Email and Password are not match',
-        });
+        return sendError(res, 'Email and Password are not match', 401);
       }
       if (checkUserVerified) {
-        return res.status(401).json({
-          error: 'your account is not verified, Please verify your account',
-        });
+        return sendError(res, 'your account is not verified, Please verify your account', 401);
       }
 
-      return res.status(200).json({
-        User: {
+      const user = {
+        email,
+        names: checkUser.names,
+        token: Auth.generateToken(
+          checkUser.id,
           email,
-          names: checkUser.names,
-          token: Auth.generateToken(
-            checkUser.id,
-            email,
-            checkUser.names,
-            checkUser.userType
-          ),
-          type: checkUser.userType,
-        },
-        message: 'successful sign in',
+          checkUser.names,
+          checkUser.userType
+        ),
+      };
+      return sendSuccess(res, user, 'User logged successful', 200, null, {
+        User: user,
+        token: user.token,
       });
     } catch (error) {
-      return res.status(500).json({ error: 'Failed to sign in' });
+      return sendError(res, 'Failed to login', 500, error.message);
     }
   }
 
   static async sendLinkResetPassword(req, res) {
     const { email } = req.body;
     if (!email) {
-      return res.status(400).json({
-        error: 'email is required',
-      });
+      return sendError(res, 'email is required', 400);
     }
     try {
       const checkUser = await users.findOne({
@@ -288,28 +273,23 @@ class userController {
             </div>`,
         };
         sgMail.send(msg);
-        return res.status(200).send({
-          message:
-            'We have sent a password reset link to your email, Please check your email',
-        });
+        return sendSuccess(res, null, 'We have sent a password reset link to your email, Please check your email');
       }
-      return res
-        .status(404)
-        .json({ error: 'The email provided does not exist' });
+      return sendError(res, 'The email provided does not exist', 404);
     } catch (error) {
-      return res.status(500).json({ error: 'Failed to reset password' });
+      return sendError(res, 'Failed to reset password', 500, error.message);
     }
   }
 
   static async resetPassword(req, res) {
     const { password } = req.body;
     if (!password) {
-      return res.status(400).json({ error: 'new password is required' });
+      return sendError(res, 'new password is required', 400);
     }
     const hashedPassword = Auth.hashPassword(password);
     const { token } = req.params;
     try {
-      const decoded = await jwt.decode(token, SECRET);
+      const decoded = jwt.verify(token, SECRET);
       if (decoded) {
         const checkUpdate = await users.update(
           {
@@ -322,16 +302,12 @@ class userController {
           }
         );
         if (checkUpdate.length >= 1) {
-          return res
-            .status(200)
-            .json({ message: 'You have successfully reset your password' });
+          return sendSuccess(res, null, 'You have successfully reset your password');
         }
       }
-      return res
-        .status(403)
-        .json({ error: 'Permission to access this resource has been denied' });
+      return sendError(res, 'Permission to access this resource has been denied', 403);
     } catch (error) {
-      return res.status(500).send({ error: 'Failed to reset password' });
+      return sendError(res, 'Failed to reset password', 500, error.message);
     }
   }
 
@@ -413,17 +389,11 @@ class userController {
         }
       );
       if (updatedUser.length < 1) {
-        return res.status(404).json({
-          error: 'No updated user',
-        });
+        return sendError(res, 'No updated user', 404);
       }
-      return res.status(200).json({
-        message: 'User updated successful',
-      });
+      return sendSuccess(res, null, 'User updated successful');
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to update user',
-      });
+      return sendError(res, 'Failed to update user', 500, error.message);
     }
   }
 }

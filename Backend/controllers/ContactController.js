@@ -2,6 +2,10 @@
 import {
   contactForm
 } from '../helpers/mailer/contactForm';
+import {
+  sendSuccess,
+  sendError,
+} from '../helpers/responseHelper';
 
 /**
  * contact Controller
@@ -18,34 +22,22 @@ export default class ContactController {
       names, email, subject, message
     } = req.body;
     if (!names) {
-      return res.status(400).json({
-        error: 'names is required',
-      });
+      return sendError(res, 'names is required', 400);
     }
     if (!email) {
-      return res.status(400).json({
-        error: 'email is required',
-      });
+      return sendError(res, 'email is required', 400);
     }
     if (!subject) {
-      return res.status(400).json({
-        error: 'subject is required',
-      });
+      return sendError(res, 'subject is required', 400);
     }
     if (!message) {
-      return res.status(400).json({
-        error: 'message is required',
-      });
+      return sendError(res, 'message is required', 400);
     }
     try {
       await contactForm(names, email, subject, message);
-      return res.status(201).json({
-        message: 'Thank you for contacting QuincaParadi, we will back to you soon!',
-      });
+      return sendSuccess(res, null, 'Thank you for contacting QuincaParadi, we will back to you soon!', 201);
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to contact',
-      });
+      return sendError(res, 'Failed to contact', 500, error.message);
     }
   }
 }

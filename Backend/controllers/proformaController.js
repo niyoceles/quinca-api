@@ -1,13 +1,23 @@
 /* eslint-disable arrow-parens */
 import models from '../models';
-import itemService from '../services/itemServies';
+import itemService from '../services/itemServices';
 import userService from '../services/userServices';
 import proformaService from '../services/proformaServices';
-import payWithStripe from '../services/stripe';
+import {
+  sendSuccess,
+  sendError,
+} from '../helpers/responseHelper';
+import {
+  createAndEmitNotification
+} from '../helpers/NotificationHelper';
 
-const { users, items, proforma, clients } = models;
+const {
+  items,
+  proforma,
+  clients,
+} = models;
 
-class orderController {
+class proformaController {
   // client order
   static async createProforma(req, res) {
     const {
@@ -30,9 +40,7 @@ class orderController {
         location
       );
       if (!userClient[0].email) {
-        return res.status(401).json({
-          error: 'Failed to create client',
-        });
+        return sendError(res, 'Failed to create client', 401);
       }
 
       const newProforma = await proforma.create({
@@ -41,14 +49,27 @@ class orderController {
         pickupDate,
         deadline,
       });
-      return res.status(201).json({
+
+      // Notify Suppliers
+      const supplierIdArray = await Promise.all(itemsArray.map(async (item) => {
+        const itemRecord = await items.findByPk(item.id);
+        return itemRecord && itemRecord.itemOwnerId ? itemRecord.itemOwnerId : null;
+      }));
+
+      const uniqueSupplierIds = [...new Set(supplierIdArray.filter((id) => id !== null))];
+
+      await Promise.all(uniqueSupplierIds.map((supplierId) => createAndEmitNotification(
+        supplierId,
+        'Proforma Request',
+        `A new proforma has been requested for your items. ID: ${newProforma.id}`,
+        'proforma'
+      )));
+
+      return sendSuccess(res, newProforma, 'proforma successful created', 201, null, {
         newProforma,
-        message: 'proforma successful created',
       });
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to request proforma',
-      });
+      return sendError(res, 'Failed to request proforma', 500, error.message);
     }
   }
 
@@ -70,18 +91,13 @@ class orderController {
         ],
       });
       if (allproforma.length < 1) {
-        return res.status(404).json({
-          error: 'No proforma found',
-        });
+        return sendError(res, 'No proforma found', 404);
       }
-      return res.status(200).json({
+      return sendSuccess(res, allproforma, 'Get all proforma successful', 200, null, {
         allproforma,
-        message: 'Get all proforma successful',
       });
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to get all proforma',
-      });
+      return sendError(res, 'Failed to get all proforma', 500, error.message);
     }
   }
 
@@ -106,50 +122,32 @@ class orderController {
           },
         ],
       });
-      if (oneproforma.length < 1) {
-        return res.status(404).json({
-          error: 'No proforma Item found',
-        });
+      if (!oneproforma) {
+        return sendError(res, 'No proforma Item found', 404);
       }
 
-      const proformaItem = oneproforma.itemsArray.map(
-        async (itemId) => {
-          const itemDetails = await items.findByPk(
-            itemId.id
-          );
-          // const item = {
-          //   itemPrice: itemDetails.itemPrice,
-          //   itemName: itemDetails.itemName,
-          // };
-
-          return {
-            itemDetails,
-            // item1: await items.findOne({
-            //   where: {
-            //     id: itemId,
-            //   },
-            // }),
-          };
-        }
-      );
+      const proformaItem = oneproforma.itemsArray.map(async (itemId) => {
+        const itemDetails = await items.findByPk(itemId.id);
+        return {
+          itemDetails,
+        };
+      });
 
       const proformaItems = await Promise.all(proformaItem);
-      return res.status(200).json({
+      return sendSuccess(res, oneproforma, 'Get proforma item successful', 200, null, {
         oneproforma,
         proformaItems,
-        message: 'Get proforma item successful',
       });
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to get proforma items',
-      });
+      return sendError(res, 'Failed to get proforma items', 500, error.message);
     }
   }
 
   static async getMyProforma(req, res) {
     try {
-      const { email } = req.decoded;
-      console.log('===request===>', email);
+      const {
+        email,
+      } = req.decoded;
       const myproforma = await proforma.findAll({
         where: {
           clientEmail: email,
@@ -169,18 +167,13 @@ class orderController {
         ],
       });
       if (myproforma.length < 1) {
-        return res.status(404).json({
-          error: 'No proforma found',
-        });
+        return sendError(res, 'No proforma found', 404);
       }
-      return res.status(200).json({
+      return sendSuccess(res, myproforma, 'Get all proforma successful', 200, null, {
         myproforma,
-        message: 'Get all proforma successful',
       });
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to get all proforma',
-      });
+      return sendError(res, 'Failed to get all proforma', 500, error.message);
     }
   }
 
@@ -210,14 +203,9 @@ class orderController {
         };
       });
       const cancelledOrder = await Promise.all(orderedItem);
-      return res.status(200).json({
-        cancelledOrder,
-        message: 'Order cancelled successful',
-      });
+      return sendSuccess(res, cancelledOrder, 'Order cancelled successful');
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to cancel order item',
-      });
+      return sendError(res, 'Failed to cancel order item', 500, error.message);
     }
   }
 
@@ -248,16 +236,11 @@ class orderController {
         };
       });
       const confirmedOrder = await Promise.all(orderedItem);
-      return res.status(200).json({
-        confirmedOrder,
-        message: 'Order confirmed successful',
-      });
+      return sendSuccess(res, confirmedOrder, 'Order confirmed successful');
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to confirm order',
-      });
+      return sendError(res, 'Failed to confirm order', 500, error.message);
     }
   }
 }
 
-export default orderController;
+export default proformaController;
