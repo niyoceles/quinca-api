@@ -4,7 +4,7 @@ import {
   sendError,
 } from '../helpers/responseHelper';
 
-const { users, items } = models;
+const { users, items, clients, orders, proforma } = models;
 
 class supplierController {
   static async getSuppliers(req, res) {
@@ -22,6 +22,69 @@ class supplierController {
       });
     } catch (error) {
       return sendError(res, 'Failed to get supplier', 500, error.message);
+    }
+  }
+
+  static async getMyCustomers(req, res) {
+    try {
+      const { userType, id } = req.decoded;
+
+      if (userType === 'admin') {
+        const allClients = await clients.findAll({
+          include: [
+            {
+              model: orders,
+              as: 'client',
+              attributes: ['id', 'status', 'createdAt'],
+            },
+          ],
+          order: [['names', 'ASC']],
+        });
+        return sendSuccess(res, allClients, 'All customers fetched successfully');
+      }
+
+      // Supplier logic: find clients who have items from this supplier in their requests
+      const supplierItems = await items.findAll({
+        where: { itemOwnerId: id },
+        attributes: ['id'],
+      });
+      const supplierItemIds = supplierItems.map((item) => item.id);
+
+      const customerEmails = new Set();
+
+      // Check Orders
+      const allOrders = await orders.findAll({ attributes: ['clientEmail', 'itemsArray'] });
+      allOrders.forEach((order) => {
+        const itemsInOrder = order.itemsArray || [];
+        if (itemsInOrder.some((item) => supplierItemIds.includes(item.id))) {
+          customerEmails.add(order.clientEmail);
+        }
+      });
+
+      // Check Proformas
+      const allProformas = await proforma.findAll({ attributes: ['clientEmail', 'itemsArray'] });
+      allProformas.forEach((prof) => {
+        const itemsInProf = prof.itemsArray || [];
+        if (itemsInProf.some((item) => supplierItemIds.includes(item.id))) {
+          customerEmails.add(prof.clientEmail);
+        }
+      });
+
+      const uniqueEmails = Array.from(customerEmails);
+      const myCustomers = await clients.findAll({
+        where: { email: uniqueEmails },
+        include: [
+          {
+            model: orders,
+            as: 'client',
+            attributes: ['id', 'status', 'createdAt'],
+          },
+        ],
+      });
+
+      return sendSuccess(res, myCustomers, 'Supplier customers fetched successfully');
+    } catch (error) {
+      return sendError(res, 'Failed to get customers', 500, error.message);
     }
   }
 

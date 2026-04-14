@@ -317,15 +317,26 @@ class orderController {
 
   static async ourOrders(req, res) {
     try {
+      const { userType, id } = req.decoded;
+      const where = userType === 'admin' ? {} : { itemOwnerId: id };
+
       const ourordered = await orders.findAll({
-        where: {
-          itemOwnerId: req.decoded.id,
-        },
+        where,
+        include: [
+          {
+            model: clients,
+            as: 'client',
+            attributes: ['names', 'email', 'phoneNumber', 'address', 'location'],
+          },
+        ],
+        order: [['createdAt', 'DESC']],
       });
-      if (ourordered.length < 1) {
-        return sendError(res, 'No Ordered Item found', 404);
+
+      if (!ourordered || ourordered.length < 1) {
+        return sendSuccess(res, [], 'No Ordered Item found', 200, null, { ourordered: [] });
       }
-      return sendSuccess(res, ourordered, 'Get ordered successful', 200, null, {
+
+      return sendSuccess(res, ourordered, 'Orders fetched successful', 200, null, {
         ourordered,
       });
     } catch (error) {

@@ -6,7 +6,7 @@ const senderEmail = process.env.EMAIL_SENDER;
 const Logo = process.env.QUINCA_LOGO;
 const visitOurWebsite = `or <br>
 Visit our website to <br> <button style="color:#18a0fb; font-size: 18px;"><a
-    href='https://quincaparadi.com/'
+    href='https://hadiwa.com/'
     style="text-decoration:none; color:#18a0fb;"
     target='_blank'
         > 
@@ -19,7 +19,7 @@ export const subscribed = async (email, id) => {
 	const subscribeMessage = {
 		to: email,
 		from: senderEmail,
-		Subject: 'Subscribed Confirmation #QUINCAPARADI',
+		Subject: 'Subscribed Confirmation #HADIWA',
 		text: 'Rwanda Chamber Of Tourism',
 		html: `<div style="background-color: #f9a758; padding: 30px; width: 80%; margin-left: 8%;">
     <img src=${Logo} width="100px" height="75px" alt="logo"/>

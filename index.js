@@ -68,7 +68,7 @@ app.use('/api', apiLimiter);
 app.use('/api', router);
 
 // Error handling to catch 404
-app.all('*', (_req, res) => {
+app.all(/.*/, (_req, res) => {
   res.status(404).json({
     error: 'Route not found',
   });

@@ -8,6 +8,7 @@ const router = express.Router();
 router.get('/myprofile', checkToken, supplierController.myprofile);
 router.get('/viewsupplier/:id', supplierController.viewSupplierAccount);
 router.get('/all', supplierController.getSuppliers);
+router.get('/customers', checkToken, supplierController.getMyCustomers);
 router.put('/update/images', checkToken, supplierController.updateProfileImage);
 
 export default router;

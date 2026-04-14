@@ -9,6 +9,7 @@ import {
   sendSuccess,
   sendError,
 } from '../helpers/responseHelper';
+import { clearItemCache } from '../helpers/cacheHelper';
 
 const { users } = models;
 
@@ -394,6 +395,36 @@ class userController {
       return sendSuccess(res, null, 'User updated successful');
     } catch (error) {
       return sendError(res, 'Failed to update user', 500, error.message);
+    }
+  }
+
+  // Toggle user status (Admin)
+  static async toggleUserStatus(req, res) {
+    if (req.decoded.userType !== 'admin') {
+      return sendError(res, 'Only administrators can perform this action', 403);
+    }
+    const { id } = req.params;
+    try {
+      const user = await users.findOne({ where: { id } });
+      if (!user) {
+        return sendError(res, 'User not found', 404);
+      }
+
+      const newStatus = !user.status;
+      await users.update(
+        { status: newStatus },
+        { where: { id } }
+      );
+
+      // If it's a supplier, we must clear the item cache because status change 
+      // affects visibility of all their items
+      if (user.userType === 'supplier') {
+        await clearItemCache();
+      }
+
+      return sendSuccess(res, { status: newStatus }, `User account ${newStatus ? 'activated' : 'suspended'} successfully`);
+    } catch (error) {
+      return sendError(res, 'Failed to update user status', 500, error.message);
     }
   }
 }

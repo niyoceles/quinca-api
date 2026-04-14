@@ -75,29 +75,48 @@ class proformaController {
 
   static async getProforma(req, res) {
     try {
+      const { userType, id } = req.decoded;
+      
       const allproforma = await proforma.findAll({
         include: [
           {
             model: clients,
             as: 'client',
-            attributes: [
-              'names',
-              'email',
-              'phoneNumber',
-              'address',
-              'location',
-            ],
+            attributes: ['names', 'email', 'phoneNumber', 'address', 'location'],
           },
         ],
+        order: [['createdAt', 'DESC']],
       });
+
       if (allproforma.length < 1) {
-        return sendError(res, 'No proforma found', 404);
+        return sendSuccess(res, [], 'No proforma found', 200, null, { allproforma: [] });
       }
-      return sendSuccess(res, allproforma, 'Get all proforma successful', 200, null, {
-        allproforma,
+
+      if (userType === 'admin') {
+        return sendSuccess(res, allproforma, 'Get all proforma successful', 200, null, {
+          allproforma,
+        });
+      }
+
+      // Supplier filtering
+      // Fetch supplier's item IDs first
+      const supplierItems = await items.findAll({
+        where: { itemOwnerId: id },
+        attributes: ['id'],
+      });
+      const supplierItemIds = supplierItems.map((item) => item.id);
+
+      const filteredProformas = allproforma.filter((prof) => {
+        // itemsArray is an array of objects like [{id: '...', quantity: ...}]
+        const itemsInProforma = prof.itemsArray || [];
+        return itemsInProforma.some((item) => supplierItemIds.includes(item.id));
+      });
+
+      return sendSuccess(res, filteredProformas, 'Supplier proformas fetched', 200, null, {
+        allproforma: filteredProformas,
       });
     } catch (error) {
-      return sendError(res, 'Failed to get all proforma', 500, error.message);
+      return sendError(res, 'Failed to get proformas', 500, error.message);
     }
   }
 

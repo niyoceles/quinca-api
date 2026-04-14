@@ -24,5 +24,6 @@ router.post('/signout', checkToken, userController.signout);
 router.post('/reset-password', userController.sendLinkResetPassword);
 router.put('/reset-password/:token', userController.resetPassword);
 router.put('/update', checkToken, userValidation.validateUpdateUser, userController.updateUserAccount);
+router.patch('/status/:id', checkToken, userController.toggleUserStatus);
 
 export default router;

@@ -9,6 +9,7 @@ import {
   sendError,
 } from '../helpers/responseHelper';
 import redisClient from '../helpers/redis';
+import { clearItemCache } from '../helpers/cacheHelper';
 
 const {
   Op
@@ -18,15 +19,7 @@ const {
   users,
 } = models;
 
-const clearItemCache = async () => {
-  try {
-    const keys = await redisClient.keysAsync('items_page_*');
-    if (keys.length > 0) await redisClient.delAsync(keys);
-    await redisClient.delAsync('home_items');
-  } catch (error) {
-    // Silence cache error
-  }
-};
+
 
 class itemController {
   static async createItem(req, res) {
@@ -124,7 +117,17 @@ class itemController {
         return sendError(res, 'Failed to update item', 404);
       }
       await clearItemCache();
-      return sendSuccess(res, null, 'item updated successful');
+      const updatedItem = await items.findOne({
+        where: { id },
+        include: [
+          {
+            model: users,
+            as: 'owner',
+            attributes: ['organization', 'description', 'profile'],
+          },
+        ],
+      });
+      return sendSuccess(res, updatedItem, 'item updated successful');
     } catch (error) {
       return sendError(res, 'Failed to update item', 500, error.message);
     }
@@ -226,12 +229,14 @@ class itemController {
           itemName: {
             [Op.like]: `%${search}%`,
           },
+          status: true,
         },
         include: [
           {
             model: users,
             as: 'owner',
             attributes: ['organization', 'description', 'profile'],
+            where: { status: true },
           },
         ],
       });
@@ -255,7 +260,7 @@ class itemController {
       } = parsePagination(req.query);
 
       const cacheKey = `items_page_${page}_limit_${limit}`;
-      const cachedData = await redisClient.getAsync(cacheKey);
+      const cachedData = await redisClient.get(cacheKey);
 
       if (cachedData) {
         const {
@@ -263,7 +268,6 @@ class itemController {
           count,
         } = JSON.parse(cachedData);
         return sendSuccess(res, allitems, 'Get items successful (from cache)', 200, buildPaginationMeta(count, page, limit), {
-          allitems,
         });
       }
 
@@ -271,11 +275,13 @@ class itemController {
         count,
         rows: allitems,
       } = await items.findAndCountAll({
+        where: { status: true },
         include: [
           {
             model: users,
             as: 'owner',
-            attributes: ['organization', 'description', 'profile'],
+            attributes: ['organization', 'description', 'profile', 'status'],
+            where: { status: true },
           },
         ],
         order: [['createdAt', 'DESC']],
@@ -291,7 +297,7 @@ class itemController {
         });
       }
 
-      await redisClient.setexAsync(cacheKey, 300, JSON.stringify({
+      await redisClient.setEx(cacheKey, 300, JSON.stringify({
         allitems,
         count,
       })); // 5 min TTL
@@ -307,7 +313,7 @@ class itemController {
   static async getHomeItems(req, res) {
     try {
       const cacheKey = 'home_items';
-      const cachedData = await redisClient.getAsync(cacheKey);
+      const cachedData = await redisClient.get(cacheKey);
 
       if (cachedData) {
         const homeItems = JSON.parse(cachedData);
@@ -317,7 +323,14 @@ class itemController {
       const construction = await items.findAll({
         where: {
           category: 'construction',
+          status: true,
         },
+        include: [{
+          model: users,
+          as: 'owner',
+          where: { status: true },
+          attributes: ['status'],
+        }],
         order: [['createdAt', 'DESC']],
         offset: 0,
         limit: 3,
@@ -325,7 +338,14 @@ class itemController {
       const plumbing = await items.findAll({
         where: {
           category: 'plumbing',
+          status: true,
         },
+        include: [{
+          model: users,
+          as: 'owner',
+          where: { status: true },
+          attributes: ['status'],
+        }],
         order: [['createdAt', 'DESC']],
         offset: 0,
         limit: 4,
@@ -333,7 +353,14 @@ class itemController {
       const electricity = await items.findAll({
         where: {
           category: 'electricity',
+          status: true,
         },
+        include: [{
+          model: users,
+          as: 'owner',
+          where: { status: true },
+          attributes: ['status'],
+        }],
         order: [['createdAt', 'DESC']],
         offset: 0,
         limit: 8,
@@ -349,7 +376,7 @@ class itemController {
         electricity,
       };
 
-      await redisClient.setexAsync(cacheKey, 3600, JSON.stringify(allHomeItems)); // 1 hour TTL
+      await redisClient.setEx(cacheKey, 3600, JSON.stringify(allHomeItems)); // 1 hour TTL
 
       return sendSuccess(res, allHomeItems, 'Get Home items successful', 200, null, {
         construction,
@@ -428,12 +455,14 @@ class itemController {
       const item = await items.findOne({
         where: {
           id,
+          status: true,
         },
         include: [
           {
             model: users,
             as: 'owner',
-            attributes: ['organization', 'description', 'profile'],
+            attributes: ['organization', 'description', 'profile', 'status'],
+            where: { status: true },
           },
         ],
       });
@@ -463,12 +492,14 @@ class itemController {
       const { count, rows: relatedItems } = await items.findAndCountAll({
         where: {
           category,
+          status: true,
         },
         include: [
           {
             model: users,
             as: 'owner',
-            attributes: ['organization', 'description', 'profile'],
+            attributes: ['organization', 'description', 'profile', 'status'],
+            where: { status: true },
           },
         ],
         order: [['createdAt', 'DESC']],
@@ -494,24 +525,30 @@ class itemController {
 
   static async GetMyItems(req, res) {
     try {
+      const { userType, id } = req.decoded;
+      const where = userType === 'admin' ? {} : { itemOwnerId: id };
+
       const myitems = await items.findAll({
-        where: {
-          itemOwnerId: req.decoded.id,
-        },
+        where,
+        include: [
+          {
+            model: users,
+            as: 'owner',
+            attributes: ['organization', 'names', 'email'],
+          },
+        ],
+        order: [['createdAt', 'DESC']],
       });
-      if (!myitems) {
-        return res.status(404).json({
-          error: 'No Item found',
-        });
+
+      if (!myitems || myitems.length === 0) {
+        return sendSuccess(res, [], 'No items found', 200, null, { myitems: [] });
       }
-      return res.status(200).json({
+
+      return sendSuccess(res, myitems, 'Items fetched successful', 200, null, {
         myitems,
-        message: 'Get items successful',
       });
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to get items',
-      });
+      return sendError(res, 'Failed to get items', 500, error.message);
     }
   }
 }

@@ -1,8 +1,9 @@
-import {
-  uuid
-} from 'uuidv4';
+import 'dotenv/config';
+import { v4 as uuid } from 'uuid';
+import Stripe from 'stripe';
 
-const stripe = require('stripe')(process.env.SECRET_KEY); // Add your Secret Key Here
+const secretKey = process.env.SECRET_KEY || 'sk_test_placeholder';
+const stripe = new Stripe(secretKey);
 
 const idempontencyKey = uuid();
 
