@@ -1,5 +1,4 @@
-/* eslint-disable object-curly-newline */
-import sgMail from '@sendgrid/mail';
+import sendEmail from '../helpers/mailHelper';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import models from '../models';
@@ -11,16 +10,10 @@ import {
 } from '../helpers/responseHelper';
 import { clearItemCache } from '../helpers/cacheHelper';
 
-const { users } = models;
-
-const expirationTime = {
-  expiresIn: '1day',
-};
-
 dotenv.config();
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const { SENDER_EMAIL, BACKEND_URL, SECRET, FRONT_END_URL } = process.env;
+const { users } = models;
 
 class userController {
   static async signupClient(req, res) {
@@ -52,7 +45,9 @@ class userController {
         userType: 'client',
         phoneNumber,
         status: true,
+        isVerified: true, // No need to verify for clients
       });
+      console.log('CLIENT_SIGNUP_SUCCESS:', email, 'isVerified:', newUser.isVerified);
       if (newUser) {
         const token = Auth.generateToken(
           newUser.id,
@@ -60,20 +55,20 @@ class userController {
           names,
           newUser.userType
         );
-        const msg = {
-          to: email,
-          from: `${SENDER_EMAIL}`,
-          subject: 'store-backend Account Verification',
-          html: `<div style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;padding:35px;">
-                      <h1 style="color: #444;">store-backend Web app</h1>
-                      <p style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;text-align:left">Welcome ${names},<br> Please verify your mail to enjoy premium access.<br> Click the blue button below to verify your account.</p>
-                      <p><a style="background-color: #3097d1; border: 2px solid #3097d1; padding: 8px; color: #fff; font-size: 16px; text-decoration: none;cursor: pointer;" href="${BACKEND_URL}/api/user/verify/${token}">Verify an account</a>
+        const html = `<div style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;padding:35px;">
+                      <h1 style="color: #444;">Welcome to Hadiwa!</h1>
+                      <p style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;text-align:left">Welcome ${names},<br> Your account has been created successfully. You can now start browsing construction materials and requesting proformas.</p>
+                      <p><a style="background-color: #3097d1; border: 2px solid #3097d1; padding: 8px; color: #fff; font-size: 16px; text-decoration: none;cursor: pointer;" href="${FRONT_END_URL}/login">Login to your account</a>
                       </a></p>
                       <p style="color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;text-align:left">Thank you for using our application!</p>
-                      <p style="color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;">Regards,<br>store-backend</p>
-                      </div>`,
-        };
-        sgMail.send(msg);
+                      <p style="color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;">Regards,<br>Hadiwa Team</p>
+                      </div>`;
+        
+        await sendEmail({
+          to: email,
+          subject: 'Welcome to Hadiwa',
+          html,
+        });
         return sendSuccess(res, {
           token,
         }, 'Your account successful created', 201, null, {
@@ -144,6 +139,7 @@ class userController {
         location,
         status: false,
       });
+      console.log('SUPPLIER_SIGNUP_SUCCESS:', email, 'isVerified:', newUser.isVerified);
       if (newUser) {
         const token = Auth.generateToken(
           newUser.id,
@@ -151,20 +147,20 @@ class userController {
           names,
           newUser.userType
         );
-        const msg = {
-          to: email,
-          from: `${SENDER_EMAIL}`,
-          subject: 'Store platform Account Verification',
-          html: `<div style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;padding:35px;">
-                <h1 style="color: #444;">store-backend Web app</h1>
+        const html = `<div style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;padding:35px;">
+                <h1 style="color: #444;">Hadiwa Web App</h1>
                 <p style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;text-align:left">Welcome ${names},<br> Please verify your mail to enjoy premium access.<br> Click the blue button below to verify your account.</p>
-                <p><a style="background-color: #3097d1; border: 2px solid #3097d1; padding: 8px; color: #fff; font-size: 16px; text-decoration: none;cursor: pointer;" href="${BACKEND_URL}/api/user/verify/${token}">Verify an account</a>
+                <p><a style="background-color: #3097d1; border: 2px solid #3097d1; padding: 8px; color: #fff; font-size: 16px; text-decoration: none;cursor: pointer;" href="${BACKEND_URL}/api/user/verify/${token}">Verify account</a>
                   </a></p>
                 <p style="color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;text-align:left">Thank you for using our application!</p>
-            <p style="color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;">Regards,<br>store-backend</p>
-          </div>`,
-        };
-        sgMail.send(msg);
+            <p style="color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;">Regards,<br>Hadiwa Team</p>
+          </div>`;
+        
+        await sendEmail({
+          to: email,
+          subject: 'Hadiwa Supplier Account Verification',
+          html,
+        });
 
         return sendSuccess(res, null, 'Your account successful created', 201);
       }
@@ -203,27 +199,22 @@ class userController {
     }
     try {
       const checkUser = await users.findOne({
-        where: {
-          email,
-        },
-      });
-
-      const checkUserVerified = await users.findOne({
-        where: {
-          email,
-          isVerified: false,
-        },
+        where: { email },
       });
 
       if (!checkUser) {
+        console.log('LOGIN_FAILED: USER_NOT_FOUND', email);
         return sendError(res, 'user not found', 404);
       }
 
       const compared = Auth.comparePassword(password, checkUser.password);
+      console.log('LOGIN_ATTEMPT:', email, 'PASSWORD_MATCH:', compared, 'isVerified:', checkUser.isVerified);
+
       if (!compared) {
         return sendError(res, 'Email and Password are not match', 401);
       }
-      if (checkUserVerified) {
+
+      if (checkUser.isVerified === false && checkUser.userType !== 'client') {
         return sendError(res, 'your account is not verified, Please verify your account', 401);
       }
 
@@ -261,19 +252,21 @@ class userController {
         const payload = {
           email: checkUser.email,
         };
+        const expirationTime = { expiresIn: '1h' };
         const token = jwt.sign(payload, SECRET, expirationTime);
-        const msg = {
-          to: email,
-          from: `${SENDER_EMAIL}`,
-          subject: 'Reset your password',
-          html: `<div style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;padding:35px;">
+        const html = `<div style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;padding:35px;">
             <h1 style="color: #444;">${checkUser.names} Please reset your password</h1>
-            <p style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;text-align:left"><br> Click the link button below to reset your password.</p>
-            <p><a style="background-color: #3097d1; border: 2px solid #3097d1; padding: 8px; color: #fff; font-size: 16px; text-decoration: none;cursor: pointer;" href="${BACKEND_URL}/api/user/get/${token}">Reset password Link </a>
-            </a></p>
-            </div>`,
-        };
-        sgMail.send(msg);
+            <p style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;text-align:left"><br> Click the button below to reset your password. This link will expire in 1 hour.</p>
+            <p><a style="background-color: #3097d1; border: 2px solid #3097d1; padding: 12px 24px; color: #fff; font-size: 16px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;" href="${FRONT_END_URL}/reset-password/${token}">Reset Password</a></p>
+            <p style="color:#74787e;font-size:14px;line-height:1.5em;margin-top:20px;">If the button doesn't work, copy and paste this URL into your browser:</p>
+            <p style="color:#3097d1;font-size:12px;">${FRONT_END_URL}/reset-password/${token}</p>
+            </div>`;
+        
+        await sendEmail({
+          to: email,
+          subject: 'Hadiwa Password Reset',
+          html,
+        });
         return sendSuccess(res, null, 'We have sent a password reset link to your email, Please check your email');
       }
       return sendError(res, 'The email provided does not exist', 404);

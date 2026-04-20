@@ -21,8 +21,8 @@ router.get('/get/:token', userController.generateToken);
 router.get('/verify/:token', userController.verifyUser);
 router.post('/login', userController.signIn);
 router.post('/signout', checkToken, userController.signout);
-router.post('/reset-password', userController.sendLinkResetPassword);
-router.put('/reset-password/:token', userController.resetPassword);
+router.post('/reset', userController.sendLinkResetPassword);
+router.post('/reset/:token', userController.resetPassword);
 router.put('/update', checkToken, userValidation.validateUpdateUser, userController.updateUserAccount);
 router.patch('/status/:id', checkToken, userController.toggleUserStatus);
 
