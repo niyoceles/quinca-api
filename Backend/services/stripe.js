@@ -1,9 +1,8 @@
-import 'dotenv/config';
-import { v4 as uuid } from 'uuid';
-import Stripe from 'stripe';
+import {
+  uuid
+} from 'uuidv4';
 
-const secretKey = process.env.SECRET_KEY || 'sk_test_placeholder';
-const stripe = new Stripe(secretKey);
+const stripe = require('stripe')(process.env.SECRET_KEY); // Add your Secret Key Here
 
 const idempontencyKey = uuid();
 
@@ -41,7 +40,7 @@ const payWithStripe = (req, res) => {
           result
         });
       })
-      .catch((err) => res.status(500).json({ error: 'Payment service failed' }));
+      .catch((err) => console.log(err));
   } catch (err) {
     res.send(err);
   }
