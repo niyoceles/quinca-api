@@ -1,25 +1,12 @@
 import Sequelize from 'sequelize';
 import models from '../models';
-import {
-  parsePagination,
-  buildPaginationMeta,
-} from '../helpers/pagination';
-import {
-  sendSuccess,
-  sendError,
-} from '../helpers/responseHelper';
-import redisClient from '../helpers/redis';
-import { clearItemCache } from '../helpers/cacheHelper';
 
 const {
   Op
 } = Sequelize;
 const {
-  items,
-  users,
+  items, users,
 } = models;
-
-
 
 class itemController {
   static async createItem(req, res) {
@@ -71,13 +58,15 @@ class itemController {
       });
 
       if (newItem) {
-        await clearItemCache();
-        return sendSuccess(res, newItem, 'item successful created', 201, null, {
+        return res.status(200).json({
           item: newItem,
+          message: 'item successful created',
         });
       }
     } catch (error) {
-      return sendError(res, 'Failed to create an item', 500, error.message);
+      return res.status(500).json({
+        error: 'Failed to create an item',
+      });
     }
   }
 
@@ -114,22 +103,17 @@ class itemController {
         }
       );
       if (!updatingItem) {
-        return sendError(res, 'Failed to update item', 404);
+        return res.status(404).json({
+          error: 'Failed to update item',
+        });
       }
-      await clearItemCache();
-      const updatedItem = await items.findOne({
-        where: { id },
-        include: [
-          {
-            model: users,
-            as: 'owner',
-            attributes: ['organization', 'description', 'profile'],
-          },
-        ],
+      return res.status(200).json({
+        message: 'item updated successful',
       });
-      return sendSuccess(res, updatedItem, 'item updated successful');
     } catch (error) {
-      return sendError(res, 'Failed to update item', 500, error.message);
+      return res.status(500).json({
+        error: 'Failed to update item',
+      });
     }
   }
 
@@ -176,14 +160,18 @@ class itemController {
         },
       });
       if (!deletingItem) {
-        return sendError(res, 'Failed to delete an item', 404);
+        return res.status(404).json({
+          error: 'Failed to delete an item',
+        });
       }
-      await clearItemCache();
-      return sendSuccess(res, {
+      return res.status(200).json({
         id,
-      }, 'item deleted successful');
+        message: 'item deleted successful',
+      });
     } catch (error) {
-      return sendError(res, 'Failed to delete item', 500, error.message);
+      return res.status(500).json({
+        error: 'Failed to delete item',
+      });
     }
   }
 
@@ -229,140 +217,111 @@ class itemController {
           itemName: {
             [Op.like]: `%${search}%`,
           },
-          status: true,
         },
         include: [
           {
             model: users,
             as: 'owner',
             attributes: ['organization', 'description', 'profile'],
-            where: { status: true },
           },
         ],
       });
       if (results.length < 1) {
-        return sendError(res, 'No Item found', 404);
+        return res.status(404).json({
+          error: 'No Item found',
+        });
       }
-      return sendSuccess(res, results, 'Get items successful', 200, null, {
+      return res.status(200).json({
         results,
+        message: 'Get items successful',
       });
     } catch (error) {
-      return sendError(res, 'Failed to get items', 500, error.message);
+      return res.status(500).json({
+        error: 'Failed to get items',
+      });
     }
   }
 
-  static async allAvailableItems(req, res) {
+  static async allAvailbleItems(req, res) {
     try {
-      const {
-        page,
-        limit,
-        offset,
-      } = parsePagination(req.query);
-
-      const cacheKey = `items_page_${page}_limit_${limit}`;
-      const cachedData = await redisClient.get(cacheKey);
-
-      if (cachedData) {
-        const {
-          allitems,
-          count,
-        } = JSON.parse(cachedData);
-        return sendSuccess(res, allitems, 'Get items successful (from cache)', 200, buildPaginationMeta(count, page, limit), {
-        });
+      // @pagination
+      let page, limit;
+      if (Object.keys(req.query).length === 0) {
+        page = 1;
+        limit = 20;
+      } else if (req.query.limit === undefined) {
+        ({
+          page
+        } = req.query);
+        limit = 10;
+      } else {
+        ({
+          page, limit
+        } = req.query);
       }
-
-      const {
-        count,
-        rows: allitems,
-      } = await items.findAndCountAll({
-        where: { status: true },
+      // @retrieve items
+      const allitems = await items.findAll({
         include: [
           {
             model: users,
             as: 'owner',
-            attributes: ['organization', 'description', 'profile', 'status'],
-            where: { status: true },
+            attributes: ['organization', 'description', 'profile'],
           },
         ],
         order: [['createdAt', 'DESC']],
-        offset,
+        offset: (parseInt(page, 10) - 1) * limit,
         limit,
       });
-
       if (allitems.length < 1) {
-        return res.status(200).json({
-          allitems: [],
-          metadata: buildPaginationMeta(0, page, limit),
-          message: 'No items found',
+        return res.status(404).json({
+          error: 'No Item found',
         });
       }
-
-      await redisClient.setEx(cacheKey, 300, JSON.stringify({
+      return res.status(200).json({
         allitems,
-        count,
-      })); // 5 min TTL
-
-      return sendSuccess(res, allitems, 'Get items successful', 200, buildPaginationMeta(count, page, limit), {
-        allitems,
+        metadata: {
+          currentPage: parseInt(page, 10),
+          previousPage: parseInt(page, 10) > 1 ? parseInt(page, 10) - 1 : null,
+          nextPage:
+						Math.ceil(allitems.length / limit) > page
+						  ? parseInt(page, 10) + 1
+						  : null,
+          totalPages: Math.ceil(allitems.length / limit),
+          limit: parseInt(limit, 10),
+        },
+        message: 'Get items successful',
       });
     } catch (error) {
-      return sendError(res, 'Failed to get items', 500, error.message);
+      return res.status(500).json({
+        error: 'Failed to get items',
+      });
     }
   }
 
   static async getHomeItems(req, res) {
     try {
-      const cacheKey = 'home_items';
-      const cachedData = await redisClient.get(cacheKey);
-
-      if (cachedData) {
-        const homeItems = JSON.parse(cachedData);
-        return sendSuccess(res, homeItems, 'Get Home items successful (from cache)', 200, null, homeItems);
-      }
-
       const construction = await items.findAll({
         where: {
           category: 'construction',
-          status: true,
         },
-        include: [{
-          model: users,
-          as: 'owner',
-          where: { status: true },
-          attributes: ['status'],
-        }],
         order: [['createdAt', 'DESC']],
-        offset: 0,
+        offset: (parseInt(1, 5) - 1) * 5,
         limit: 3,
       });
       const plumbing = await items.findAll({
         where: {
           category: 'plumbing',
-          status: true,
         },
-        include: [{
-          model: users,
-          as: 'owner',
-          where: { status: true },
-          attributes: ['status'],
-        }],
         order: [['createdAt', 'DESC']],
-        offset: 0,
+        offset: (parseInt(1, 5) - 1) * 5,
         limit: 4,
       });
       const electricity = await items.findAll({
         where: {
           category: 'electricity',
-          status: true,
         },
-        include: [{
-          model: users,
-          as: 'owner',
-          where: { status: true },
-          attributes: ['status'],
-        }],
         order: [['createdAt', 'DESC']],
-        offset: 0,
+        offset: (parseInt(1, 5) - 1) * 5,
         limit: 8,
       });
       // if (!most) {
@@ -370,21 +329,16 @@ class itemController {
       //     error: 'No Item most found',
       //   });
       // }
-      const allHomeItems = {
+      return res.status(200).json({
         construction,
         plumbing,
         electricity,
-      };
-
-      await redisClient.setEx(cacheKey, 3600, JSON.stringify(allHomeItems)); // 1 hour TTL
-
-      return sendSuccess(res, allHomeItems, 'Get Home items successful', 200, null, {
-        construction,
-        plumbing,
-        electricity,
+        message: 'Get Home items successful',
       });
     } catch (error) {
-      return sendError(res, 'Failed to get items', 500, error.message);
+      return res.status(500).json({
+        error: 'Failed to get items',
+      });
     }
   }
 
@@ -455,14 +409,12 @@ class itemController {
       const item = await items.findOne({
         where: {
           id,
-          status: true,
         },
         include: [
           {
             model: users,
             as: 'owner',
-            attributes: ['organization', 'description', 'profile', 'status'],
-            where: { status: true },
+            attributes: ['organization', 'description', 'profile'],
           },
         ],
       });
@@ -487,68 +439,83 @@ class itemController {
       category
     } = req.params;
     try {
-      const { page, limit, offset } = parsePagination(req.query);
-
-      const { count, rows: relatedItems } = await items.findAndCountAll({
+      // @pagination
+      let page, limit;
+      if (Object.keys(req.query).length === 0) {
+        page = 1;
+        limit = 20;
+      } else if (req.query.limit === undefined) {
+        ({
+          page
+        } = req.query);
+        limit = 10;
+      } else {
+        ({
+          page, limit
+        } = req.query);
+      }
+      // @retrieve items
+      const relatedItems = await items.findAll({
         where: {
           category,
-          status: true,
         },
         include: [
           {
             model: users,
             as: 'owner',
-            attributes: ['organization', 'description', 'profile', 'status'],
-            where: { status: true },
+            attributes: ['organization', 'description', 'profile'],
           },
         ],
         order: [['createdAt', 'DESC']],
-        offset,
+        offset: (parseInt(page, 20) - 1) * limit,
         limit,
       });
-
       if (relatedItems.length < 1) {
-        return res.status(200).json({
-          relatedItems: [],
-          metadata: buildPaginationMeta(0, page, limit),
-          message: 'No items found',
+        return res.status(404).json({
+          error: 'No Item found',
         });
       }
-
-      return sendSuccess(res, relatedItems, 'Get related items item successful', 200, buildPaginationMeta(count, page, limit), {
+      return res.status(200).json({
         relatedItems,
+        metadata: {
+          currentPage: parseInt(page, 10),
+          previousPage: parseInt(page, 10) > 1 ? parseInt(page, 10) - 1 : null,
+          nextPage:
+						Math.ceil(relatedItems.length / limit) > page
+						  ? parseInt(page, 10) + 1
+						  : null,
+          totalPages: Math.ceil(relatedItems.length / limit),
+          limit: parseInt(limit, 10),
+        },
+        message: 'Get items successful',
       });
     } catch (error) {
-      return sendError(res, 'Failed to get items', 500, error.message);
+      return res.status(500).json({
+        error: 'Failed to get items',
+      });
     }
   }
 
   static async GetMyItems(req, res) {
     try {
-      const { userType, id } = req.decoded;
-      const where = userType === 'admin' ? {} : { itemOwnerId: id };
-
       const myitems = await items.findAll({
-        where,
-        include: [
-          {
-            model: users,
-            as: 'owner',
-            attributes: ['organization', 'names', 'email'],
-          },
-        ],
-        order: [['createdAt', 'DESC']],
+        where: {
+          itemOwnerId: req.decoded.id,
+        },
       });
-
-      if (!myitems || myitems.length === 0) {
-        return sendSuccess(res, [], 'No items found', 200, null, { myitems: [] });
+      if (!myitems) {
+        return res.status(404).json({
+          error: 'No Item found',
+        });
       }
-
-      return sendSuccess(res, myitems, 'Items fetched successful', 200, null, {
+      return res.status(200).json({
         myitems,
+        message: 'Get items successful',
       });
     } catch (error) {
-      return sendError(res, 'Failed to get items', 500, error.message);
+      return res.status(500).json({
+        error: 'Failed to get items',
+      });
     }
   }
 }

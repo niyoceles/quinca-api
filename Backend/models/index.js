@@ -27,13 +27,8 @@ fs.readdirSync(__dirname)
   .filter(
     (file) => file.indexOf('.') !== 0 && file !== basename && file.slice(-3) === '.js'
   )
-  .filter((file) => !fs.statSync(path.join(__dirname, file)).isDirectory())
   .forEach((file) => {
-    // eslint-disable-next-line
-    const modelDef = require(path.join(__dirname, file));
-    const model = modelDef.default
-      ? modelDef.default(sequelize, Sequelize.DataTypes)
-      : modelDef(sequelize, Sequelize.DataTypes);
+    const model = sequelize.import(path.join(__dirname, file));
     db[model.name] = model;
   });
 

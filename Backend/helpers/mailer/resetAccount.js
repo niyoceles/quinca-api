@@ -12,7 +12,7 @@ export const resetAccountUrl = async (token, email, lastName) => {
     to: email,
     from: senderEmail,
     Subject: 'Reset Account Password',
-    text: 'HADIWA',
+    text: 'QUINCA PARADI',
     html: `<div style="background-color: #f9a758; padding: 30px; width: 80%; margin-left: 8%;">
                 <img src=${Logo} width="100px" height="75px" alt="logo"/>
                 <div style="background-color: white; border-radius: 10px;">
@@ -20,7 +20,7 @@ export const resetAccountUrl = async (token, email, lastName) => {
                         Hi <b>${
   lastName || ''
 } ,</b> here's how to reset your password account.<br />
-                        We have recieved a request to have your account reset for <b>HADIWA</b>.
+                        We have recieved a request to have your account reset for <b>QUINCA PARADI</b>.
                         <br /> 
                         To reset your account, click on the link below:
                         <br />
@@ -33,18 +33,18 @@ export const resetAccountUrl = async (token, email, lastName) => {
                         Reset your Account
                         </a>
                         <br><br>
-                        Need help? Ask our Call center <b>8181</b>  or contact helpdesk@hadiwa.com
+                        Need help? Ask our Call center <b>8181</b>  or contact helpdesk@quincaparadi.com
                         <br><br><br>
                         Best regards, 
                         <br>
-                        HADIWA
+                        QUINCA PARADI
                         <br>
                         <a
-                            href='https://hadiwa.com/'
+                            href='https://quincaparadi.com/'
                             style="color:#18a0fb; text-decoration:none"
                             target='_blank'
                         > 
-                        HADIWA
+                        QUINCA PARADI
                         </a>
                     </p>
                 </div>
@@ -62,7 +62,7 @@ export const sendForgotPasswordUrl = async (token, email) => {
     to: email,
     from: senderEmail,
     Subject: 'Reset Password',
-    text: 'HADIWA',
+    text: 'QUINCA PARADI',
     html: `<div style="background-color: #f9a758; padding: 30px; width: 80%; margin-left: 8%;">
                 <img src=${Logo} width="100px" height="75px" alt="logo"/>
                 <div style="background-color: white; border-radius: 10px;">
@@ -70,7 +70,7 @@ export const sendForgotPasswordUrl = async (token, email) => {
                         Hi <b>${
   email || ''
 } ,</b> here's how to reset your password.<br />
-                        We have recieved a request to have your password reset for <b>HADIWA</b>.
+                        We have recieved a request to have your password reset for <b>QUINCA PARADI</b>.
                         <br /> <br />
                         If you did not make this request, then you can just ignore this email.
                         <br /> 
@@ -85,18 +85,18 @@ export const sendForgotPasswordUrl = async (token, email) => {
                         Reset your password
                         </a>
                         <br><br>
-                        Need help? Ask contact helpdesk@hadiwa.com
+                        Need help? Ask contact helpdesk@quincaparadi.com
                         <br><br><br>
                         Best regards, 
                         <br>
-                        HADIWA
+                        QUINCA PARADI
                         <br>
                         <a
-                            href='https://hadiwa.com/'
+                            href='https://quincaparadi.com/'
                             style="color:#18a0fb; text-decoration:none"
                             target='_blank'
                         > 
-                        HADIWA
+                        QUINCA PARADI
                         </a>
                     </p>
                 </div>

@@ -35,7 +35,7 @@ router.patch(
   itemController.activateItem
 );
 
-router.get('/all', itemController.allAvailableItems);
+router.get('/all', itemController.allAvailbleItems);
 router.get('/home', itemController.getHomeItems);
 router.get('/related/:category', itemController.relatedItems);
 router.get('/:id', itemController.getItem);
