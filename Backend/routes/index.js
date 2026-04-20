@@ -8,6 +8,8 @@ import category from './categoryRoutes';
 import proforma from './proformaRoutes';
 import search from './search';
 import contact from './contactRoutes';
+import notifications from './notificationRoutes';
+import messages from './messageRoutes';
 
 const router = express.Router();
 
@@ -19,5 +21,7 @@ router.use('/category', category);
 router.use('/proforma', proforma);
 router.use('/search', search);
 router.use('/contact', contact);
+router.use('/notifications', notifications);
+router.use('/messages', messages);
 
 export default router;
