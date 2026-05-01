@@ -15,11 +15,11 @@ router.post(
 );
 
 router.get('/', checkToken, orderController.getOrders);
+router.get('/supplier', checkToken, orderController.ourOrders);
 router.get('/:id', orderController.getSingleOrder);
 router.put('/pay', checkToken, orderController.onlinePayment);
 router.delete('/', checkToken, orderController.cancelOrder);
 // owner
 router.patch('/', checkToken, orderController.confirmOrder);
-router.get('/supplier', checkToken, orderController.ourOrders);
 
 export default router;

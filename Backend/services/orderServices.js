@@ -14,27 +14,22 @@ class orderService {
 	 * @returns {Object} item
 	 */
 	// cancel order
-	async cancelOrdered(id, clientId) {
+	async cancelOrdered(id) {
 		const updatedBook = await orders.update(
 			{
 				status: 'cancelled',
 			},
 			{
-				where: {
-					id,
-					clientId,
-				},
+				where: { id },
 				returning: true,
-				raw: true,
-				nest: true,
 			}
 		);
 
-		return [updatedBook[1][0].id];
+		return updatedBook[0] > 0 ? updatedBook[1][0].id : null;
 	}
 
 	// confirm order services
-	async confirmOrdered(id, itemOwnerId) {
+	async confirmOrdered(id) {
 		const updatedBook = await orders.update(
 			{
 				status: 'confirmed',
@@ -42,21 +37,16 @@ class orderService {
 				paymentType: 'cash',
 			},
 			{
-				where: {
-					id,
-					itemOwnerId,
-				},
+				where: { id },
 				returning: true,
-				raw: true,
-				nest: true,
 			}
 		);
 
-		return [updatedBook[1][0].id];
+		return updatedBook[0] > 0 ? updatedBook[1][0].id : null;
 	}
 
 	// payment ordered items
-	async payOrdered(id, clientId, paymentType) {
+	async payOrdered(id, paymentType) {
 		const paidOrder = await orders.update(
 			{
 				status: 'confirmed',
@@ -64,17 +54,12 @@ class orderService {
 				paymentType,
 			},
 			{
-				where: {
-					id,
-					clientId,
-				},
+				where: { id },
 				returning: true,
-				raw: true,
-				nest: true,
 			}
 		);
 
-		return [paidOrder[1][0].id];
+		return paidOrder[0] > 0 ? paidOrder[1][0].id : null;
 	}
 }
 

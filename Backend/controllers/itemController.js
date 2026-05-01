@@ -42,8 +42,8 @@ class itemController {
       });
 
       if (!findUser) {
-        return res.status(401).json({
-          error: 'Not Authorized to create an Item',
+        return res.status(403).json({
+          error: 'Forbidden: Only suppliers can register new materials',
         });
       }
 
@@ -56,7 +56,7 @@ class itemController {
 
       if (checkItemExist) {
         return res.status(403).json({
-          error: 'this item already Exist',
+          error: `The material "${itemName}" already exists in your inventory.`,
         });
       }
       const newItem = await items.create({
@@ -268,6 +268,7 @@ class itemController {
           count,
         } = JSON.parse(cachedData);
         return sendSuccess(res, allitems, 'Get items successful (from cache)', 200, buildPaginationMeta(count, page, limit), {
+          allitems,
         });
       }
 

@@ -229,99 +229,82 @@ class orderController {
   }
 
   static async cancelOrder(req, res) {
-    // we will need another instruction here on cancel order
-    const {
-      orderedIdArray
-    } = req.body;
+    const { id } = req.body;
+    const { orderedIdArray } = req.body;
+    const idsToCancel = id ? [id] : (orderedIdArray || []);
+
     try {
-      const orderedItem = orderedIdArray.map(async id => {
-        const orderedDetails = await orders.findByPk(id);
+      const results = await Promise.all(idsToCancel.map(async (orderId) => {
+        const orderToCancel = await orders.findOne({ where: { id: orderId } });
+        if (!orderToCancel) return null;
 
-        const cancelOrderedItem = await orderService.cancelOrdered(
-          id,
-          req.decoded.id
-        );
-        const item = await itemService.changeStatus(
-          orderedDetails.itemId,
-          true
-        );
-        return {
-          cancelOrderedItem,
-          item: await items.findOne({
-            where: {
-              id: item,
-            },
-          }),
-        };
-      });
-      const cancelledOrder = await Promise.all(orderedItem);
-      
-      // Notify Client (using clientEmail from first order in array as they belong to same client usually)
-      if (orderedIdArray.length > 0) {
-        const firstOrder = await orders.findByPk(orderedIdArray[0]);
-        if (firstOrder && firstOrder.clientEmail) {
-          // Future: Fetch user by email to get UUID for notification room
-          // const user = await userService.findUserByEmail(firstOrder.clientEmail);
+        const cancelled = await orderService.cancelOrdered(orderId);
+        if (cancelled) {
+          const itemsArr = orderToCancel.itemsArray;
+          if (itemsArr && Array.isArray(itemsArr)) {
+            await Promise.all(itemsArr.map(async (item) => {
+              await itemService.changeStatus(item.id, 'available');
+            }));
+          }
+          return orderId;
         }
-      }
+        return null;
+      }));
 
-      return res.status(200).json({
-        cancelledOrder,
-        message: 'Order cancelled successful',
-      });
+      const successfulIds = results.filter(r => r !== null);
+      if (successfulIds.length === 0) {
+        return res.status(400).json({ error: 'Failed to cancel order(s)' });
+      }
+      return res.status(200).json({ successfulIds, message: 'Order(s) cancelled successful' });
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to cancel order item',
-      });
+      return res.status(500).json({ error: 'Failed to cancel order', details: error.message });
     }
   }
 
   // owner of item
   static async confirmOrder(req, res) {
-    // confirming ordered will automatically reset order as it is paid
-    const {
-      orderedIdArray
-    } = req.body;
-    try {
-      const orderedItem = orderedIdArray.map(async id => {
-        const orderedDetails = await orders.findByPk(id);
+    const { id } = req.body;
+    const { orderedIdArray } = req.body;
+    const idsToConfirm = id ? [id] : (orderedIdArray || []);
 
-        const confirmOrderedItem = await orderService.confirmOrdered(
-          id,
-          req.decoded.id
-        );
-        const item = await itemService.changeStatus(
-          orderedDetails.itemId,
-          false
-        );
-        return {
-          confirmOrderedItem,
-          item: await items.findOne({
-            where: {
-              id: item,
-            },
-          }),
-        };
-      });
-      const confirmedOrder = await Promise.all(orderedItem);
-      return res.status(200).json({
-        confirmedOrder,
-        message: 'Order confirmed successful',
-      });
+    try {
+      const results = await Promise.all(idsToConfirm.map(async (orderId) => {
+        const orderToConfirm = await orders.findOne({ where: { id: orderId } });
+        if (!orderToConfirm) return null;
+
+        const confirmed = await orderService.confirmOrdered(orderId);
+        if (confirmed) {
+          const itemsArr = orderToConfirm.itemsArray;
+          if (itemsArr && Array.isArray(itemsArr)) {
+            await Promise.all(itemsArr.map(async (item) => {
+              await itemService.changeStatus(item.id, 'booked');
+            }));
+          }
+          return orderId;
+        }
+        return null;
+      }));
+
+      const successfulIds = results.filter(r => r !== null);
+      if (successfulIds.length === 0) {
+        return res.status(400).json({ error: 'Failed to confirm order(s)' });
+      }
+      return res.status(200).json({ successfulIds, message: 'Order(s) confirmed successful' });
     } catch (error) {
-      return res.status(500).json({
-        error: 'Failed to confirm order',
-      });
+      return res.status(500).json({ error: 'Failed to confirm order', details: error.message });
     }
   }
 
   static async ourOrders(req, res) {
     try {
-      const { userType, id } = req.decoded;
-      const where = userType === 'admin' ? {} : { itemOwnerId: id };
+      const { userType, id } = req.decoded || {};
+      if (!userType) {
+        return sendError(res, 'User type missing from token', 401);
+      }
 
-      const ourordered = await orders.findAll({
-        where,
+      console.log(`[ourOrders] Fetching orders for ${userType} (${id})`);
+
+      const allorders = await orders.findAll({
         include: [
           {
             model: clients,
@@ -332,14 +315,34 @@ class orderController {
         order: [['createdAt', 'DESC']],
       });
 
-      if (!ourordered || ourordered.length < 1) {
-        return sendSuccess(res, [], 'No Ordered Item found', 200, null, { ourordered: [] });
+      if (!allorders || allorders.length < 1) {
+        return sendSuccess(res, [], 'No Ordered Item found', 200, null, { allorders: [] });
       }
 
-      return sendSuccess(res, ourordered, 'Orders fetched successful', 200, null, {
-        ourordered,
+      if (userType === 'admin') {
+        return sendSuccess(res, allorders, 'Get all orders successful', 200, null, {
+          allorders,
+        });
+      }
+
+      // Supplier filtering
+      const supplierItems = await items.findAll({
+        where: { itemOwnerId: id },
+        attributes: ['id'],
+      });
+      const supplierItemIds = supplierItems.map((item) => item.id);
+
+      const filteredOrders = allorders.filter((order) => {
+        const itemsInOrder = order.itemsArray || [];
+        if (!Array.isArray(itemsInOrder)) return false;
+        return itemsInOrder.some((item) => supplierItemIds.includes(item.id));
+      });
+
+      return sendSuccess(res, filteredOrders, 'Supplier orders fetched', 200, null, {
+        allorders: filteredOrders,
       });
     } catch (error) {
+      console.error('[ourOrders] ERROR:', error);
       return sendError(res, 'Failed to get order', 500, error.message);
     }
   }

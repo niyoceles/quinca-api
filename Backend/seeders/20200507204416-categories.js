@@ -21,6 +21,12 @@ module.exports = {
         createdAt: new Date(),
         updatedAt: new Date(),
 			},
+			{
+				name: 'tools',
+        status: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+			},
 		],
 		{}
 	),

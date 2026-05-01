@@ -22,6 +22,7 @@ class proformaController {
   static async createProforma(req, res) {
     const {
       pickupDate,
+      needDate, // Added for frontend compatibility
       deadline,
       itemsArray,
       names,
@@ -30,6 +31,12 @@ class proformaController {
       address,
       location,
     } = req.body;
+
+    const finalPickupDate = needDate || pickupDate;
+
+    if (!itemsArray || itemsArray.length === 0) {
+      return sendError(res, 'Please add at least one material to your request', 400);
+    }
 
     try {
       const userClient = await userService.createClient(
@@ -46,7 +53,7 @@ class proformaController {
       const newProforma = await proforma.create({
         clientEmail: userClient[0].email,
         itemsArray,
-        pickupDate,
+        pickupDate: finalPickupDate,
         deadline,
       });
 
@@ -197,67 +204,68 @@ class proformaController {
   }
 
   static async cancelOrder(req, res) {
-    // we will need another instruction here on cancel order
-    const { orderedIdArray } = req.body;
-    try {
-      const orderedItem = orderedIdArray.map(async (id) => {
-        const orderedDetails = await proforma.findByPk(id);
+    const { id } = req.body; // Try single ID first
+    const { orderedIdArray } = req.body; // Then multiple
+    const idsToCancel = id ? [id] : (orderedIdArray || []);
 
-        const cancelOrderedItem =
-          await proformaService.cancelOrdered(
-            id,
-            req.decoded.id
-          );
-        const item = await itemService.changeStatus(
-          orderedDetails.itemId,
-          true
-        );
-        return {
-          cancelOrderedItem,
-          item: await items.findOne({
-            where: {
-              id: item,
-            },
-          }),
-        };
-      });
-      const cancelledOrder = await Promise.all(orderedItem);
-      return sendSuccess(res, cancelledOrder, 'Order cancelled successful');
+    try {
+      const results = await Promise.all(idsToCancel.map(async (proformaId) => {
+        const orderToCancel = await proforma.findOne({ where: { id: proformaId } });
+        if (!orderToCancel) return null;
+
+        const cancelled = await proformaService.cancelProforma(proformaId);
+        if (cancelled) {
+          const itemsArr = orderToCancel.itemsArray;
+          if (itemsArr && Array.isArray(itemsArr)) {
+            await Promise.all(itemsArr.map(async (item) => {
+              await itemService.changeStatus(item.id, 'available');
+            }));
+          }
+          return proformaId;
+        }
+        return null;
+      }));
+
+      const successfulIds = results.filter(r => r !== null);
+      if (successfulIds.length === 0) {
+        return sendError(res, 'Failed to cancel proforma(s)', 400);
+      }
+      return sendSuccess(res, successfulIds, 'Proforma(s) cancelled successful');
     } catch (error) {
-      return sendError(res, 'Failed to cancel order item', 500, error.message);
+      return sendError(res, 'Failed to cancel proforma', 500, error.message);
     }
   }
 
-  // owner of item
   static async confirmOrder(req, res) {
-    // confirming ordered will automatically reset order as it is paid
+    const { id } = req.body;
     const { orderedIdArray } = req.body;
-    try {
-      const orderedItem = orderedIdArray.map(async (id) => {
-        const orderedDetails = await proforma.findByPk(id);
+    const idsToConfirm = id ? [id] : (orderedIdArray || []);
 
-        const confirmOrderedItem =
-          await proformaService.confirmOrdered(
-            id,
-            req.decoded.id
-          );
-        const item = await itemService.changeStatus(
-          orderedDetails.itemId,
-          false
-        );
-        return {
-          confirmOrderedItem,
-          item: await items.findOne({
-            where: {
-              id: item,
-            },
-          }),
-        };
-      });
-      const confirmedOrder = await Promise.all(orderedItem);
-      return sendSuccess(res, confirmedOrder, 'Order confirmed successful');
+    try {
+      const results = await Promise.all(idsToConfirm.map(async (proformaId) => {
+        const orderToConfirm = await proforma.findOne({ where: { id: proformaId } });
+        if (!orderToConfirm) return null;
+
+        const confirmed = await proformaService.confirmProforma(proformaId);
+        if (confirmed) {
+          const itemsArr = orderToConfirm.itemsArray;
+          if (itemsArr && Array.isArray(itemsArr)) {
+            await Promise.all(itemsArr.map(async (item) => {
+              await itemService.changeStatus(item.id, 'booked');
+            }));
+          }
+          return proformaId;
+        }
+        return null;
+      }));
+
+      const successfulIds = results.filter(r => r !== null);
+      if (successfulIds.length === 0) {
+        return sendError(res, 'Failed to confirm proforma(s)', 400);
+      }
+      return sendSuccess(res, successfulIds, 'Proforma(s) confirmed successful');
     } catch (error) {
-      return sendError(res, 'Failed to confirm order', 500, error.message);
+      return sendError(res, 'Failed to confirm proforma', 500, error.message);
     }
   }
 }

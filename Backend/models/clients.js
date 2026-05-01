@@ -28,7 +28,7 @@ export default (sequelize, DataTypes) => {
       phoneNumber: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
+        unique: false,
       },
       address: {
         type: DataTypes.STRING,

@@ -16,27 +16,22 @@ class proformaService {
 	 * @returns {Object} item
 	 */
   // cancel order
-  async cancelProforma(id, clientId) {
+  async cancelProforma(id) {
     const updatedBook = await proforma.update(
       {
         status: 'cancelled',
       },
       {
-        where: {
-          id,
-          clientId,
-        },
+        where: { id },
         returning: true,
-        raw: true,
-        nest: true,
       }
     );
 
-    return [updatedBook[1][0].id];
+    return updatedBook[0] > 0 ? updatedBook[1][0].id : null;
   }
 
   // confirm order services
-  async confirmProforma(id, itemOwnerId) {
+  async confirmProforma(id) {
     const updatedBook = await proforma.update(
       {
         status: 'confirmed',
@@ -44,21 +39,16 @@ class proformaService {
         paymentType: 'cash',
       },
       {
-        where: {
-          id,
-          itemOwnerId,
-        },
+        where: { id },
         returning: true,
-        raw: true,
-        nest: true,
       }
     );
 
-    return [updatedBook[1][0].id];
+    return updatedBook[0] > 0 ? updatedBook[1][0].id : null;
   }
 
   // payment ordered items
-  async payProforma(id, clientId, paymentType) {
+  async payProforma(id, paymentType) {
     const paidOrder = await proforma.update(
       {
         status: 'confirmed',
@@ -66,17 +56,12 @@ class proformaService {
         paymentType,
       },
       {
-        where: {
-          id,
-          clientId,
-        },
+        where: { id },
         returning: true,
-        raw: true,
-        nest: true,
       }
     );
 
-    return [paidOrder[1][0].id];
+    return paidOrder[0] > 0 ? paidOrder[1][0].id : null;
   }
 }
 
