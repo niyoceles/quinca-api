@@ -120,26 +120,19 @@ class orderController {
           },
         ],
       });
-      if (oneorder.length < 1) {
+      if (!oneorder) {
         return res.status(404).json({
           error: 'No order found',
         });
       }
 
-      const orderItem = oneorder.itemsArray.map(async itemId => {
-        const itemDetails = await items.findByPk(itemId.id);
+      const orderItems = await Promise.all(
+        (oneorder.itemsArray || []).map(async (itemId) => {
+          const itemDetails = await items.findByPk(itemId.id);
+          return { itemDetails };
+        })
+      );
 
-        return {
-          itemDetails,
-          // item1: await items.findOne({
-          //   where: {
-          //     id: itemId,
-          //   },
-          // }),
-        };
-      });
-
-      const orderItems = await Promise.all(orderItem);
       return res.status(200).json({
         oneorder,
         orderItems,
@@ -335,7 +328,7 @@ class orderController {
       const filteredOrders = allorders.filter((order) => {
         const itemsInOrder = order.itemsArray || [];
         if (!Array.isArray(itemsInOrder)) return false;
-        return itemsInOrder.some((item) => supplierItemIds.includes(item.id));
+        return itemsInOrder.some((item) => item && item.id && supplierItemIds.includes(item.id));
       });
 
       return sendSuccess(res, filteredOrders, 'Supplier orders fetched', 200, null, {

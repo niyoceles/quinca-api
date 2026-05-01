@@ -34,16 +34,20 @@ class itemController {
     } = req.body;
 
     try {
-      const findUser = await users.findOne({
-        where: {
-          email: req.decoded.email,
-          userType: 'supplier',
-        },
-      });
+      // Use req.decoded values directly from the verified token
+      const { id: userId, userType } = req.decoded;
 
-      if (!findUser) {
+      // Only suppliers and admins are allowed to register items
+      if (userType !== 'supplier' && userType !== 'admin') {
         return res.status(403).json({
-          error: 'Forbidden: Only suppliers can register new materials',
+          error: 'Forbidden: Only suppliers and administrators can register new materials',
+        });
+      }
+
+      const findUser = await users.findByPk(userId);
+      if (!findUser) {
+        return res.status(404).json({
+          error: 'User account not found.',
         });
       }
 
@@ -55,7 +59,7 @@ class itemController {
       });
 
       if (checkItemExist) {
-        return res.status(403).json({
+        return res.status(409).json({
           error: `The material "${itemName}" already exists in your inventory.`,
         });
       }
