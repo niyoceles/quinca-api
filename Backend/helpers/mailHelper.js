@@ -1,17 +1,16 @@
 import nodemailer from 'nodemailer';
 import 'dotenv/config';
 
+// Using 'service: gmail' is the most reliable way to connect from cloud providers
+// It automatically configures the correct host, port, and security settings.
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '465', 10),
-  secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465', // true for 465, false for other ports
+  service: 'gmail',
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
   tls: {
-    // This is often required for cloud hosting providers like Railway/Heroku
-    // to handle SSL handshakes correctly with Gmail
+    // Helps with SSL handshake issues in cloud environments like Railway
     rejectUnauthorized: false
   }
 });
@@ -41,12 +40,12 @@ export const sendEmail = async ({ to, subject, text, html, bcc }) => {
     console.log('Message sent: %s', info.messageId);
     return info;
   } catch (error) {
-    console.error('CRITICAL SMTP ERROR:', error.message);
-    if (error.code === 'EAUTH') {
-      console.error('Authentication failed. Check your App Password.');
-    } else if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
-      console.error('Connection failed. Port might be blocked by the hosting provider.');
-    }
+    console.error('SMTP ERROR LOG:', {
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      user: process.env.SMTP_USER
+    });
     throw error;
   }
 };
