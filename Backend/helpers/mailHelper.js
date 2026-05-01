@@ -2,13 +2,18 @@ import nodemailer from 'nodemailer';
 import 'dotenv/config';
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT || '465', 10),
+  secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465', // true for 465, false for other ports
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  tls: {
+    // This is often required for cloud hosting providers like Railway/Heroku
+    // to handle SSL handshakes correctly with Gmail
+    rejectUnauthorized: false
+  }
 });
 
 /**
@@ -36,7 +41,12 @@ export const sendEmail = async ({ to, subject, text, html, bcc }) => {
     console.log('Message sent: %s', info.messageId);
     return info;
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('CRITICAL SMTP ERROR:', error.message);
+    if (error.code === 'EAUTH') {
+      console.error('Authentication failed. Check your App Password.');
+    } else if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+      console.error('Connection failed. Port might be blocked by the hosting provider.');
+    }
     throw error;
   }
 };
