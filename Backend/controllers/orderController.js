@@ -11,6 +11,9 @@ import {
 import {
   createAndEmitNotification
 } from '../helpers/NotificationHelper';
+import { sendEmail } from '../helpers/mailHelper';
+import { orderSummaryTemplate } from '../helpers/mailer/orderSummary';
+import moment from 'moment';
 
 const {
   items, orders, clients
@@ -65,6 +68,29 @@ class orderController {
         `New order placed for your items. ID: ${order.id}`,
         'order'
       )));
+
+      // Send Email to Client and Copy Paradise Bounty
+      const totalAmount = itemsArray.reduce((acc, item) => acc + (Number(item.itemPrice) * (Number(item.itemNumber) || 1)), 0);
+      const emailHtml = orderSummaryTemplate(
+        names,
+        email,
+        phoneNumber,
+        'Order',
+        itemsArray,
+        totalAmount,
+        moment().format('MMMM Do YYYY, h:mm a')
+      );
+
+      try {
+        await sendEmail({
+          to: email,
+          bcc: 'paradisebountyco@gmail.com',
+          subject: `Hadiwa - New Order Confirmation (#${order.id})`,
+          html: emailHtml
+        });
+      } catch (err) {
+        console.error('Email notification failed but order was created:', err);
+      }
 
       return sendSuccess(res, order, 'ordered successful created', 201, null, {
         order,

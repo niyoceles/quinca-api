@@ -10,6 +10,9 @@ import {
 import {
   createAndEmitNotification
 } from '../helpers/NotificationHelper';
+import { sendEmail } from '../helpers/mailHelper';
+import { orderSummaryTemplate } from '../helpers/mailer/orderSummary';
+import moment from 'moment';
 
 const {
   items,
@@ -71,6 +74,29 @@ class proformaController {
         `A new proforma has been requested for your items. ID: ${newProforma.id}`,
         'proforma'
       )));
+
+      // Send Email to Client and Copy Paradise Bounty
+      const totalAmount = itemsArray.reduce((acc, item) => acc + (Number(item.itemPrice) * (Number(item.itemNumber || item.quantity) || 1)), 0);
+      const emailHtml = orderSummaryTemplate(
+        names,
+        email,
+        phoneNumber,
+        'Proforma',
+        itemsArray,
+        totalAmount,
+        moment().format('MMMM Do YYYY, h:mm a')
+      );
+
+      try {
+        await sendEmail({
+          to: email,
+          bcc: 'paradisebountyco@gmail.com',
+          subject: `Hadiwa - New Proforma Request (#${newProforma.id})`,
+          html: emailHtml
+        });
+      } catch (err) {
+        console.error('Email notification failed but proforma was created:', err);
+      }
 
       return sendSuccess(res, newProforma, 'proforma successful created', 201, null, {
         newProforma,

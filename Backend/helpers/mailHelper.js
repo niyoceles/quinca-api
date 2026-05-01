@@ -14,19 +14,21 @@ const transporter = nodemailer.createTransport({
 /**
  * Send an email using Nodemailer
  * @param {Object} options - Email options
- * @param {string} options.to - Recipient email
+ * @param {string|string[]} options.to - Recipient email(s)
  * @param {string} options.subject - Email subject
  * @param {string} [options.text] - Plain text body
  * @param {string} [options.html] - HTML body
+ * @param {string|string[]} [options.bcc] - BCC recipient(s)
  * @returns {Promise}
  */
-export const sendEmail = async ({ to, subject, text, html }) => {
+export const sendEmail = async ({ to, subject, text, html, bcc }) => {
   const mailOptions = {
     from: `"Hadiwa" <${process.env.SMTP_USER}>`,
     to,
     subject,
     text,
     html,
+    bcc,
   };
 
   try {
