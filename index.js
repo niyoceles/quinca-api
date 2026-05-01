@@ -16,10 +16,12 @@ import {
 const app = express();
 const server = http.createServer(app);
 
-// --- CORS: restrict to configured frontend URL ---
-const allowedOrigins = process.env.FRONT_END_URL
+// --- CORS: always allow production domain + any configured frontend URLs ---
+const productionOrigins = ['https://hadiwa.com', 'http://localhost:3000'];
+const envOrigins = process.env.FRONT_END_URL
   ? process.env.FRONT_END_URL.split(',').map((o) => o.trim())
-  : ['http://localhost:3000'];
+  : [];
+const allowedOrigins = [...new Set([...productionOrigins, ...envOrigins])];
 
 // Initialize Socket.io via helper
 init(server, allowedOrigins);

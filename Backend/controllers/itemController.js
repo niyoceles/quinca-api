@@ -355,9 +355,9 @@ class itemController {
         offset: 0,
         limit: 4,
       });
-      const electricity = await items.findAll({
+      const electrical = await items.findAll({
         where: {
-          category: 'electricity',
+          category: 'electrical',
           status: true,
         },
         include: [{
@@ -378,7 +378,7 @@ class itemController {
       const allHomeItems = {
         construction,
         plumbing,
-        electricity,
+        electrical,
       };
 
       await redisClient.setEx(cacheKey, 3600, JSON.stringify(allHomeItems)); // 1 hour TTL
@@ -386,7 +386,7 @@ class itemController {
       return sendSuccess(res, allHomeItems, 'Get Home items successful', 200, null, {
         construction,
         plumbing,
-        electricity,
+        electrical,
       });
     } catch (error) {
       return sendError(res, 'Failed to get items', 500, error.message);

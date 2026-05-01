@@ -69,7 +69,7 @@ class orderController {
         'order'
       )));
 
-      // Send Email to Client and Copy Paradise Bounty
+      // Send Email to Client and Copy Paradise Bounty (Non-blocking)
       const totalAmount = itemsArray.reduce((acc, item) => acc + (Number(item.itemPrice) * (Number(item.itemNumber) || 1)), 0);
       const emailHtml = orderSummaryTemplate(
         names,
@@ -81,16 +81,14 @@ class orderController {
         moment().format('MMMM Do YYYY, h:mm a')
       );
 
-      try {
-        await sendEmail({
-          to: email,
-          bcc: 'paradisebountyco@gmail.com',
-          subject: `Hadiwa - New Order Confirmation (#${order.id})`,
-          html: emailHtml
-        });
-      } catch (err) {
-        console.error('Email notification failed but order was created:', err);
-      }
+      sendEmail({
+        to: email,
+        bcc: 'paradisebountyco@gmail.com',
+        subject: `Hadiwa - New Order Confirmation (#${order.id})`,
+        html: emailHtml
+      }).catch((err) => {
+        console.error('BACKGROUND EMAIL ERROR (Order):', err.message);
+      });
 
       return sendSuccess(res, order, 'ordered successful created', 201, null, {
         order,

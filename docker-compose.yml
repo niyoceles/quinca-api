@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  postgres-hadiwa:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: hadiwa-store
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis-hadiwa:
+    image: redis:alpine
+
+  api-hadiwa:
+    build: .
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - DATABASE_URL=postgres://postgres:admin@postgres-hadiwa:5432/hadiwa-store
+      - REDIS_URL=redis://redis-hadiwa:6379
+      - NODE_ENV=production
+      - JWT_SECRET=your_secret_here
+    depends_on:
+      - postgres-hadiwa
+      - redis-hadiwa
+
+volumes:
+  postgres_data:

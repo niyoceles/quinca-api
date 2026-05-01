@@ -75,7 +75,7 @@ class proformaController {
         'proforma'
       )));
 
-      // Send Email to Client and Copy Paradise Bounty
+      // Send Email to Client and Copy Paradise Bounty (Non-blocking)
       const totalAmount = itemsArray.reduce((acc, item) => acc + (Number(item.itemPrice) * (Number(item.itemNumber || item.quantity) || 1)), 0);
       const emailHtml = orderSummaryTemplate(
         names,
@@ -87,16 +87,14 @@ class proformaController {
         moment().format('MMMM Do YYYY, h:mm a')
       );
 
-      try {
-        await sendEmail({
-          to: email,
-          bcc: 'paradisebountyco@gmail.com',
-          subject: `Hadiwa - New Proforma Request (#${newProforma.id})`,
-          html: emailHtml
-        });
-      } catch (err) {
-        console.error('Email notification failed but proforma was created:', err);
-      }
+      sendEmail({
+        to: email,
+        bcc: 'paradisebountyco@gmail.com',
+        subject: `Hadiwa - New Proforma Request (#${newProforma.id})`,
+        html: emailHtml
+      }).catch((err) => {
+        console.error('BACKGROUND EMAIL ERROR (Proforma):', err.message);
+      });
 
       return sendSuccess(res, newProforma, 'proforma successful created', 201, null, {
         newProforma,
