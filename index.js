@@ -17,7 +17,7 @@ const app = express();
 const server = http.createServer(app);
 
 // --- CORS: always allow production domain + any configured frontend URLs ---
-const productionOrigins = ['https://hadiwa.com', 'http://localhost:3000'];
+const productionOrigins = ['https://hadiwa.com', 'https://www.hadiwa.com', 'http://localhost:3000'];
 const envOrigins = process.env.FRONT_END_URL
   ? process.env.FRONT_END_URL.split(',').map((o) => o.trim())
   : [];
