@@ -20,11 +20,7 @@ module.exports = {
     logging: false,
     seederStorage: 'sequelize',
     dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false
-      }
-    }
+    },
   },
   secret_key_code: process.env.SECRET,
 };
