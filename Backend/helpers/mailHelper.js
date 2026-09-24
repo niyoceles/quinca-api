@@ -80,4 +80,3 @@ export const sendEmail = async ({ to, subject, text, html, bcc }) => {
 };
 
 export default sendEmail;
-
