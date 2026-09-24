@@ -8,7 +8,14 @@
  * @param {Object} [extraData={}] - Additional data for backward compatibility
  * @returns {Object} Express response
  */
-export const sendSuccess = (res, data, message, statusCode = 200, meta = null, extraData = {}) => {
+export const sendSuccess = (
+  res,
+  data,
+  message,
+  statusCode = 200,
+  meta = null,
+  extraData = {}
+) => {
   const response = {
     status: 'success',
     message,
@@ -25,12 +32,15 @@ export const sendSuccess = (res, data, message, statusCode = 200, meta = null, e
  * @param {string} message - Error message
  * @param {number} [statusCode=500] - HTTP status code
  * @param {any} [errorDetails] - Optional details/stack/validation errors
+ * @returns {Object} Express response
  */
 export const sendError = (res, message, statusCode = 500, errorDetails = null) => {
   const response = {
     status: 'error',
     message,
+    error: message,
   };
   if (errorDetails) response.details = errorDetails;
   return res.status(statusCode).json(response);
 };
+

@@ -206,18 +206,6 @@ describe('Supplier Authentication', () => {
       .catch((err) => done(err));
   });
 
-  it('Supplier should not signup supplier with Invalid State', (done) => {
-    chai
-      .request(app)
-      .post('/api/user/supplier')
-      .send(user.invalidState)
-      .then((res) => {
-        expect(res.statusCode).to.be.equal(400);
-        done();
-      })
-      .catch((err) => done(err));
-  });
-
   it('Supplier should not signup supplier with Invalid City', (done) => {
     chai
       .request(app)

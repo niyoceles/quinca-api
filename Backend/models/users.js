@@ -67,10 +67,6 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      state: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
       city: {
         type: DataTypes.STRING,
         allowNull: true,

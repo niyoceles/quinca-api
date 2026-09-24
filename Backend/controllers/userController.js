@@ -55,22 +55,35 @@ class userController {
           names,
           newUser.userType
         );
+        const frontEndBase = (FRONT_END_URL || 'https://hadiwa.com').split(',')[0].trim();
         const html = `<div style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;padding:35px;">
                       <h1 style="color: #444;">Welcome to Hadiwa!</h1>
                       <p style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;text-align:left">Welcome ${names},<br> Your account has been created successfully. You can now start browsing construction materials and requesting proformas.</p>
-                      <p><a style="background-color: #3097d1; border: 2px solid #3097d1; padding: 8px; color: #fff; font-size: 16px; text-decoration: none;cursor: pointer;" href="${FRONT_END_URL}/login">Login to your account</a>
-                      </a></p>
+                      <p><a style="background-color: #3097d1; border: 2px solid #3097d1; padding: 8px; color: #fff; font-size: 16px; text-decoration: none;cursor: pointer;" href="${frontEndBase}/login">Login to your account</a>
+                      </p>
                       <p style="color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;text-align:left">Thank you for using our application!</p>
                       <p style="color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;">Regards,<br>Hadiwa Team</p>
                       </div>`;
         
-        await sendEmail({
-          to: email,
-          subject: 'Welcome to Hadiwa',
-          html,
-        });
+        try {
+          await sendEmail({
+            to: email,
+            subject: 'Welcome to Hadiwa',
+            html,
+          });
+        } catch (emailError) {
+          console.error('Welcome email failed to send:', emailError.message);
+        }
+
         return sendSuccess(res, {
           token,
+          user: {
+            id: newUser.id,
+            names: newUser.names,
+            email: newUser.email,
+            phoneNumber: newUser.phoneNumber,
+            userType: newUser.userType,
+          },
         }, 'Your account successful created', 201, null, {
           token,
         });
@@ -92,7 +105,6 @@ class userController {
       description,
       birthDate,
       country,
-      state,
       city,
       address,
       location,
@@ -110,34 +122,51 @@ class userController {
 
     if (checkUserEmail) {
       return res.status(403).json({
+        status: 'error',
+        message: 'this email already Exist',
         error: 'this email already Exist',
       });
     }
 
     if (checkUserPhone) {
       return res.status(403).json({
+        status: 'error',
+        message: 'this phone number already Exist',
         error: 'this phone number already Exist',
       });
+    }
+
+    if (nationalId) {
+      const checkNationalId = await users.findOne({
+        where: { nationalId },
+      });
+      if (checkNationalId) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'this national ID / TIN already Exist',
+          error: 'this national ID / TIN already Exist',
+        });
+      }
     }
 
     try {
       const newUser = await users.create({
         names,
-        profile,
+        profile: profile || null,
         email,
         password: hashedPassword,
         userType: 'supplier',
         phoneNumber,
         nationalId,
-        birthDate,
+        birthDate: birthDate || null,
         organization,
-        description,
-        country,
-        state,
+        description: description || 'Building materials supplier',
+        country: country || 'Rwanda',
         city,
         address,
-        location,
+        location: location || address || city || '',
         status: false,
+        isVerified: false,
       });
       console.log('SUPPLIER_SIGNUP_SUCCESS:', email, 'isVerified:', newUser.isVerified);
       if (newUser) {
@@ -147,22 +176,37 @@ class userController {
           names,
           newUser.userType
         );
+        const backendBase = BACKEND_URL || (req.protocol && req.get ? `${req.protocol}://${req.get('host')}` : 'https://api.hadiwa.com');
         const html = `<div style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;padding:35px;">
                 <h1 style="color: #444;">Hadiwa Web App</h1>
                 <p style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;text-align:left">Welcome ${names},<br> Please verify your mail to enjoy premium access.<br> Click the blue button below to verify your account.</p>
-                <p><a style="background-color: #3097d1; border: 2px solid #3097d1; padding: 8px; color: #fff; font-size: 16px; text-decoration: none;cursor: pointer;" href="${BACKEND_URL}/api/user/verify/${token}">Verify account</a>
-                  </a></p>
+                <p><a style="background-color: #3097d1; border: 2px solid #3097d1; padding: 8px; color: #fff; font-size: 16px; text-decoration: none;cursor: pointer;" href="${backendBase}/api/user/verify/${token}">Verify account</a>
+                  </p>
                 <p style="color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;text-align:left">Thank you for using our application!</p>
             <p style="color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;">Regards,<br>Hadiwa Team</p>
           </div>`;
         
-        await sendEmail({
-          to: email,
-          subject: 'Hadiwa Supplier Account Verification',
-          html,
-        });
+        try {
+          await sendEmail({
+            to: email,
+            subject: 'Hadiwa Supplier Account Verification',
+            html,
+          });
+        } catch (emailError) {
+          console.error('Supplier verification email failed to send:', emailError.message);
+        }
 
-        return sendSuccess(res, null, 'Your account successful created', 201);
+        return sendSuccess(res, {
+          user: {
+            id: newUser.id,
+            names: newUser.names,
+            email: newUser.email,
+            phoneNumber: newUser.phoneNumber,
+            organization: newUser.organization,
+            userType: newUser.userType,
+            isVerified: newUser.isVerified,
+          },
+        }, 'Your account successful created', 201);
       }
     } catch (error) {
       return sendError(res, 'Failed to create user account', 500, error.message);
@@ -171,22 +215,81 @@ class userController {
 
   static async verifyUser(req, res) {
     const { token } = req.params;
-    const decodedToken = jwt.verify(token, process.env.SECRET);
+    const frontEndBase = (FRONT_END_URL || 'https://hadiwa.com').split(',')[0].trim();
     try {
-      const verified = await users.update(
-        { isVerified: true },
+      const decodedToken = jwt.verify(token, process.env.SECRET);
+      const updated = await users.update(
+        { isVerified: true, status: true },
         { where: { id: decodedToken.id } }
       );
-      if (verified) {
-        return res.redirect(`${FRONT_END_URL}/login`);
+      if (updated && updated[0] >= 0) {
+        return res.redirect(`${frontEndBase}/login?verified=true`);
       }
+      return res.redirect(`${frontEndBase}/login?verified=false&reason=not_found`);
     } catch (error) {
-      return res.status(500).json({ error: 'Failed to verify your account' });
+      if (error.name === 'TokenExpiredError') {
+        return res.redirect(`${frontEndBase}/login?verified=false&reason=expired`);
+      }
+      return res.redirect(`${frontEndBase}/login?verified=false&reason=invalid`);
     }
   }
 
   static generateToken(req, res) {
     return res.status(200).json({ token: req.params.token });
+  }
+
+  // Admin: manually verify a supplier account
+  static async adminVerifySupplier(req, res) {
+    if (req.decoded.userType !== 'admin') {
+      return sendError(res, 'Only administrators can perform this action', 403);
+    }
+    const { id } = req.params;
+    try {
+      const user = await users.findOne({ where: { id } });
+      if (!user) {
+        return sendError(res, 'User not found', 404);
+      }
+      if (user.userType !== 'supplier') {
+        return sendError(res, 'Account verification only applies to supplier accounts', 400);
+      }
+      if (user.isVerified) {
+        return sendError(res, 'This account is already verified', 409);
+      }
+
+      await users.update(
+        { isVerified: true, status: true },
+        { where: { id } }
+      );
+
+      // Send approval email
+      const frontEndBase = (FRONT_END_URL || 'https://hadiwa.com').split(',')[0].trim();
+      const html = `<div style="font-family:Avenir,Helvetica,sans-serif;box-sizing:border-box;padding:35px;">
+        <h1 style="color:#444;">Your Hadiwa Supplier Account is Approved! 🎉</h1>
+        <p style="font-family:Avenir,Helvetica,sans-serif;color:#74787e;font-size:16px;line-height:1.5em;">
+          Dear ${user.names},<br><br>
+          Great news! Your supplier account for <strong>${user.organization || 'your organization'}</strong> 
+          has been reviewed and approved by our team.<br><br>
+          You can now log in and start listing your products on Hadiwa.
+        </p>
+        <p>
+          <a style="background-color:#3097d1;border:2px solid #3097d1;padding:12px 24px;color:#fff;font-size:16px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;" 
+             href="${frontEndBase}/login">
+            Go to Dashboard
+          </a>
+        </p>
+        <p style="color:#74787e;font-size:16px;line-height:1.5em;">Regards,<br>Hadiwa Team</p>
+      </div>`;
+
+      try {
+        await sendEmail({ to: user.email, subject: 'Your Hadiwa Supplier Account is Approved', html });
+      } catch (emailError) {
+        console.error('Approval email failed to send:', emailError.message);
+      }
+
+      return sendSuccess(res, { id, isVerified: true, status: true }, 'Supplier account verified and activated successfully');
+    } catch (error) {
+      return sendError(res, 'Failed to verify supplier account', 500, error.message);
+    }
   }
 
   static async signIn(req, res) {
@@ -215,7 +318,12 @@ class userController {
       }
 
       if (checkUser.isVerified === false && checkUser.userType !== 'client') {
-        return sendError(res, 'your account is not verified, Please verify your account', 401);
+        return res.status(401).json({
+          status: 'error',
+          code: 'ACCOUNT_NOT_VERIFIED',
+          error: 'your account is not verified, Please verify your account',
+          message: 'your account is not verified, Please verify your account',
+        });
       }
 
       const user = {
@@ -331,7 +439,6 @@ class userController {
       description,
       birthDate,
       country,
-      state,
       city,
       address,
       location,
@@ -371,7 +478,6 @@ class userController {
           organization,
           description,
           country,
-          state,
           city,
           address,
           location,

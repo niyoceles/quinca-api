@@ -7,18 +7,19 @@ import {
 
 const router = express.Router();
 router.post(
-  '/supplier/',
+  ['/supplier', '/supplier/'],
   userValidation.validateSignupSupplier,
   userController.signupSupplier
 );
 router.post(
-  '/',
+  ['/', ''],
   userValidation.validateSignupClient,
   userController.signupClient
 );
 
 router.get('/get/:token', userController.generateToken);
 router.get('/verify/:token', userController.verifyUser);
+router.patch('/verify/:id/admin', checkToken, userController.adminVerifySupplier);
 router.post('/login', userController.signIn);
 router.post('/signout', checkToken, userController.signout);
 router.post('/reset', userController.sendLinkResetPassword);
