@@ -1,19 +1,43 @@
 import nodemailer from 'nodemailer';
-import 'dotenv/config';
+import dotenv from 'dotenv';
 
-// Using 'service: gmail' is the most reliable way to connect from cloud providers
-// It automatically configures the correct host, port, and security settings.
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  tls: {
-    // Helps with SSL handshake issues in cloud environments like Railway
-    rejectUnauthorized: false
+dotenv.config();
+
+const createTransporter = () => {
+  const host = process.env.SMTP_HOST;
+  const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
+  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  const baseConfig = {
+    auth: user && pass ? { user, pass } : undefined,
+    tls: {
+      rejectUnauthorized: false
+    },
+    // Set 5-second timeouts so SMTP never blocks or hangs the process/request
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 5000,
+  };
+
+  if (host && host !== 'smtp.gmail.com') {
+    return nodemailer.createTransport({
+      ...baseConfig,
+      host,
+      port,
+      secure,
+    });
   }
-});
+
+  // Gmail service default
+  return nodemailer.createTransport({
+    ...baseConfig,
+    service: 'gmail',
+  });
+};
+
+const transporter = createTransporter();
 
 /**
  * Send an email using Nodemailer
@@ -26,6 +50,11 @@ const transporter = nodemailer.createTransport({
  * @returns {Promise}
  */
 export const sendEmail = async ({ to, subject, text, html, bcc }) => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn('[mailHelper] SMTP credentials (SMTP_USER / SMTP_PASS) not configured. Skipping email to:', to);
+    return { skipped: true, reason: 'missing_credentials' };
+  }
+
   const mailOptions = {
     from: `"Hadiwa" <${process.env.SMTP_USER}>`,
     to,
@@ -37,7 +66,7 @@ export const sendEmail = async ({ to, subject, text, html, bcc }) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('Message sent: %s', info.messageId);
+    console.log('Message sent: %s to %s', info.messageId, to);
     return info;
   } catch (error) {
     console.error('SMTP ERROR LOG:', {
@@ -51,3 +80,4 @@ export const sendEmail = async ({ to, subject, text, html, bcc }) => {
 };
 
 export default sendEmail;
+

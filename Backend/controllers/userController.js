@@ -65,15 +65,14 @@ class userController {
                       <p style="color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;">Regards,<br>Hadiwa Team</p>
                       </div>`;
         
-        try {
-          await sendEmail({
-            to: email,
-            subject: 'Welcome to Hadiwa',
-            html,
-          });
-        } catch (emailError) {
-          console.error('Welcome email failed to send:', emailError.message);
-        }
+        // Send welcome email non-blocking in background so HTTP response returns instantly
+        sendEmail({
+          to: email,
+          subject: 'Welcome to Hadiwa',
+          html,
+        }).catch((emailError) => {
+          console.error('Welcome email failed to send in background:', emailError.message);
+        });
 
         return sendSuccess(res, {
           token,
@@ -186,15 +185,14 @@ class userController {
             <p style="color:#74787e;font-size:16px;line-height:1.5em;margin-top:0;">Regards,<br>Hadiwa Team</p>
           </div>`;
         
-        try {
-          await sendEmail({
-            to: email,
-            subject: 'Hadiwa Supplier Account Verification',
-            html,
-          });
-        } catch (emailError) {
-          console.error('Supplier verification email failed to send:', emailError.message);
-        }
+        // Send verification email non-blocking in background so HTTP response returns instantly
+        sendEmail({
+          to: email,
+          subject: 'Hadiwa Supplier Account Verification',
+          html,
+        }).catch((emailError) => {
+          console.error('Supplier verification email failed to send in background:', emailError.message);
+        });
 
         return sendSuccess(res, {
           user: {
@@ -280,11 +278,9 @@ class userController {
         <p style="color:#74787e;font-size:16px;line-height:1.5em;">Regards,<br>Hadiwa Team</p>
       </div>`;
 
-      try {
-        await sendEmail({ to: user.email, subject: 'Your Hadiwa Supplier Account is Approved', html });
-      } catch (emailError) {
-        console.error('Approval email failed to send:', emailError.message);
-      }
+      sendEmail({ to: user.email, subject: 'Your Hadiwa Supplier Account is Approved', html }).catch((emailError) => {
+        console.error('Approval email failed to send in background:', emailError.message);
+      });
 
       return sendSuccess(res, { id, isVerified: true, status: true }, 'Supplier account verified and activated successfully');
     } catch (error) {
@@ -370,10 +366,12 @@ class userController {
             <p style="color:#3097d1;font-size:12px;">${FRONT_END_URL}/reset-password/${token}</p>
             </div>`;
         
-        await sendEmail({
+        sendEmail({
           to: email,
           subject: 'Hadiwa Password Reset',
           html,
+        }).catch((emailError) => {
+          console.error('Password reset email failed to send in background:', emailError.message);
         });
         return sendSuccess(res, null, 'We have sent a password reset link to your email, Please check your email');
       }
